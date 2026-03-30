@@ -849,7 +849,7 @@ function Dashboard({ user, signOut }) {
 
 // Main App Component
 export default function App() {
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, loading, signInWithGoogle, signOut, isFirebaseConfigured } = useAuth();
   const [skipAuth, setSkipAuth] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     try {
@@ -890,8 +890,8 @@ export default function App() {
     );
   }
 
-  // Show auth screen if not signed in and hasn't skipped
-  if (!user && !skipAuth) {
+  // Show auth screen only if Firebase is configured and not signed in and hasn't skipped
+  if (isFirebaseConfigured && !user && !skipAuth) {
     return (
       <ThemeProvider darkMode={darkMode}>
         <AuthScreen onSignIn={signInWithGoogle} onSkip={() => setSkipAuth(true)} />

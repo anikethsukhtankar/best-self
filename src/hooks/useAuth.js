@@ -4,13 +4,17 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, isFirebaseConfigured } from '../firebase';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isFirebaseConfigured);
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -19,6 +23,9 @@ export function useAuth() {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase is not configured');
+    }
     try {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
@@ -29,6 +36,9 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!isFirebaseConfigured || !auth) {
+      return;
+    }
     try {
       await firebaseSignOut(auth);
     } catch (error) {
@@ -37,5 +47,5 @@ export function useAuth() {
     }
   }, []);
 
-  return { user, loading, signInWithGoogle, signOut };
+  return { user, loading, signInWithGoogle, signOut, isFirebaseConfigured };
 }

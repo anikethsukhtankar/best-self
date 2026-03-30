@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, isFirebaseConfigured } from '../firebase';
 import { STORAGE_KEY, DEFAULT_STATE } from '../utils/constants';
 import { sanitizeData } from '../utils/habits';
 
@@ -12,7 +12,7 @@ export function useData(user) {
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
-      if (user) {
+      if (user && isFirebaseConfigured && db) {
         // User is signed in - load from Firestore
         try {
           const docRef = doc(db, 'users', user.uid);
@@ -58,7 +58,7 @@ export function useData(user) {
 
   // Subscribe to real-time updates when signed in
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isFirebaseConfigured || !db) return;
 
     const docRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
@@ -85,7 +85,7 @@ export function useData(user) {
   const save = useCallback(async (newState) => {
     setState(newState);
 
-    if (user) {
+    if (user && isFirebaseConfigured && db) {
       // Save to Firestore
       setSyncing(true);
       try {
