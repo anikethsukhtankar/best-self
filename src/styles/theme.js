@@ -56,7 +56,7 @@ export const getStyles = (t) => ({
   dayOfWeek: { fontSize: 14, letterSpacing: '0.25em', textTransform: 'uppercase', color: t.textMuted, marginTop: 16 },
   navArrow: { fontSize: 36, fontWeight: 100, color: t.textFaintest, cursor: 'pointer', padding: '0 24px', userSelect: 'none' },
   todayLink: { fontSize: 13, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.textMuted, cursor: 'pointer', marginTop: 24, display: 'inline-block' },
-  weekStrip: { display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 64 },
+  weekStrip: { display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 },
   weekDay: { display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', padding: '8px' },
   weekDayLetter: { fontSize: 12, color: t.textFaint, marginBottom: 8 },
   weekDayNum: { fontSize: 18, fontWeight: 300, marginBottom: 12, color: t.text },
@@ -77,7 +77,7 @@ export const getStyles = (t) => ({
   progressText: { fontSize: 14, color: t.textMuted, fontVariantNumeric: 'tabular-nums' },
   // Insights styles
   insightsHeader: { marginBottom: 64 },
-  statsRow: { display: 'flex', justifyContent: 'center', gap: 64, marginBottom: 80 },
+  statsRow: { display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 48, flexWrap: 'wrap' },
   statItem: { textAlign: 'center' },
   statRing: { position: 'relative', width: 140, height: 140, marginBottom: 20 },
   statNumber: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 32, fontWeight: 200, lineHeight: 1, color: t.text },

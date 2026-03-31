@@ -634,6 +634,7 @@ function Dashboard({ user, signOut }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [todoText, setTodoText] = useState('');
   const [navHover, setNavHover] = useState(null);
 
@@ -661,7 +662,7 @@ function Dashboard({ user, signOut }) {
 
   if (!state) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 100, color: theme.textMuted, minHeight: '100vh' }}>
+      <div style={{ textAlign: 'center', paddingTop: 100, color: theme.textMuted, minHeight: '100vh', background: theme.bg }}>
         Loading...
       </div>
     );
@@ -681,6 +682,173 @@ function Dashboard({ user, signOut }) {
     const bh = dayHabits.filter(h => h.timeBlock === block).sort((a, b) => a.sortOrder - b.sortOrder);
     if (bh.length > 0) habitsByBlock[block] = bh;
   });
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div style={S.mobileContainer}>
+        {/* Mobile Header */}
+        <div style={S.mobileHeader}>
+          <button style={S.mobileCalendarToggle} onClick={() => setShowCalendar(!showCalendar)}>
+            {MONTH_NAMES[selectedDate.getMonth()].slice(0, 3)} {selectedDate.getDate()}
+            <span style={{ fontSize: 10 }}>▼</span>
+          </button>
+          {user && <span style={{ fontSize: 11, color: theme.textMuted }}>☁️</span>}
+        </div>
+
+        {/* Calendar Dropdown */}
+        {showCalendar && (
+          <div style={S.mobileCalendarDropdown}>
+            <StendigCalendar
+              selectedDate={selectedDate}
+              onSelect={(d) => { setSelectedDate(d); setShowCalendar(false); }}
+              habits={state.habits}
+              completions={completions}
+              threshold={state.settings.completionThreshold}
+            />
+          </div>
+        )}
+
+        {tab === 'today' ? (
+          <>
+            {/* Mobile Date Header */}
+            <div style={S.mobileDateHeader}>
+              <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: theme.textMuted, marginBottom: 8 }}>
+                {DAY_NAMES[selectedDate.getDay()]}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  style={{ fontSize: 28, padding: '0 16px', color: theme.textFaint, cursor: 'pointer' }}
+                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                >
+                  ‹
+                </span>
+                <div style={S.mobileDayNumber}>
+                  {selectedDate.getDate()}
+                  {isDayCompleted && (
+                    <>
+                      <div style={{ ...S.mobileStrikeX, transform: 'translate(-50%, -50%) rotate(45deg)' }} />
+                      <div style={{ ...S.mobileStrikeX, transform: 'translate(-50%, -50%) rotate(-45deg)' }} />
+                    </>
+                  )}
+                </div>
+                <span
+                  style={{ fontSize: 28, padding: '0 16px', color: theme.textFaint, cursor: 'pointer' }}
+                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                >
+                  ›
+                </span>
+              </div>
+              {!isToday && (
+                <span style={{ fontSize: 12, color: theme.textMuted, cursor: 'pointer', marginTop: 12, display: 'inline-block' }} onClick={() => setSelectedDate(new Date())}>
+                  Today
+                </span>
+              )}
+            </div>
+
+            {/* Mobile Week Strip */}
+            <WeekStrip
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+              habits={state.habits}
+              completions={completions}
+              threshold={state.settings.completionThreshold}
+            />
+
+            {/* Mobile Progress */}
+            <div style={S.mobileStatsRow}>
+              <div style={S.mobileStatItem}>
+                <div style={S.mobileStatValue}>{dayProgress.completed}</div>
+                <div style={S.mobileStatLabel}>Done</div>
+              </div>
+              <div style={S.mobileStatItem}>
+                <div style={S.mobileStatValue}>{dayProgress.total}</div>
+                <div style={S.mobileStatLabel}>Total</div>
+              </div>
+              <div style={S.mobileStatItem}>
+                <div style={S.mobileStatValue}>{Math.round(dayProgress.percentage)}%</div>
+                <div style={S.mobileStatLabel}>Progress</div>
+              </div>
+            </div>
+
+            {/* Mobile Habits */}
+            {Object.entries(habitsByBlock).map(([block, habits]) => (
+              <div key={block} style={{ marginBottom: 32 }}>
+                <div style={S.sectionLabel}>{labels[block]}</div>
+                {habits.map(habit => (
+                  <HabitRow
+                    key={habit.id}
+                    habit={habit}
+                    checked={completions[dk]?.[habit.id] || false}
+                    onToggle={() => toggleHabit(habit.id)}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {/* Mobile Todos */}
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${theme.border}` }}>
+              <div style={S.sectionLabel}>Tasks</div>
+              {state.todos.map(todo => (
+                <TodoRow key={todo.id} todo={todo} onToggle={toggleTodo} onDelete={deleteTodo} />
+              ))}
+              <input
+                type="text"
+                style={{ ...S.todoInput, fontSize: 16 }}
+                placeholder="Add a task..."
+                value={todoText}
+                onChange={ev => setTodoText(ev.target.value)}
+                onKeyDown={ev => {
+                  if (ev.key === 'Enter' && todoText.trim()) {
+                    addTodo(todoText.trim());
+                    setTodoText('');
+                  }
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <StatsRow habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <HabitBreakdown habits={state.habits} completions={completions} />
+          </>
+        )}
+
+        {/* Mobile Bottom Navigation */}
+        <div style={S.mobileNav}>
+          <button style={{ ...S.mobileNavItem, color: tab === 'today' ? theme.text : theme.textMuted }} onClick={() => setTab('today')}>
+            <span style={S.mobileNavIcon}>○</span>
+            <span style={S.mobileNavLabel}>Today</span>
+          </button>
+          <button style={{ ...S.mobileNavItem, color: tab === 'insights' ? theme.text : theme.textMuted }} onClick={() => setTab('insights')}>
+            <span style={S.mobileNavIcon}>◐</span>
+            <span style={S.mobileNavLabel}>Insights</span>
+          </button>
+          <button style={{ ...S.mobileNavItem, color: theme.textMuted }} onClick={() => setShowSettings(true)}>
+            <span style={S.mobileNavIcon}>☰</span>
+            <span style={S.mobileNavLabel}>Settings</span>
+          </button>
+        </div>
+
+        {showSettings && (
+          <SettingsModal
+            settings={state.settings}
+            onSave={s => save({ ...state, settings: s })}
+            onClose={() => setShowSettings(false)}
+            habits={state.habits}
+            onManageHabits={() => {}}
+            fullState={state}
+            onImport={importData}
+            onExport={exportData}
+            user={user}
+            onSignOut={signOut}
+            syncing={syncing}
+            lastSynced={lastSynced}
+          />
+        )}
+      </div>
+    );
+  }
 
   // Desktop Layout
   return (
