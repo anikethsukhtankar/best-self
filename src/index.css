@@ -73,3 +73,13 @@ body.dark {
   background: #fff;
   cursor: pointer;
 }
+
+.penrose-seg {
+  transition: stroke-dashoffset 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .penrose-seg {
+    transition: none;
+  }
+}

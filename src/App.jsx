@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from './hooks/useTheme.jsx';
 import { AuthScreen } from './components/AuthScreen';
 import { HabitRow } from './components/HabitRow';
 import { Checkmark } from './components/Checkmark';
+import { PenroseFigure } from './components/PenroseFigure';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
@@ -77,18 +78,16 @@ function WeekStrip({ selectedDate, onSelect, habits, completions, threshold }) {
   );
 }
 
-// Progress Bar Component
-function ProgressBar({ completed, total, threshold }) {
-  const { S } = useTheme();
-  const pct = total > 0 ? (completed / total) * 100 : 0;
+// Progress: the Impossible Figure, one stroke per share of the day's habits
+function ProgressBar({ completed, total, threshold, width = 96, style }) {
+  const { theme, S } = useTheme();
+  const complete = total > 0 && completed / total >= threshold;
 
   return (
-    <div style={S.progressContainer}>
-      <div style={S.progressBar}>
-        <div style={{ ...S.progressFill, width: pct + '%' }} />
-      </div>
+    <div style={{ ...S.progressContainer, ...style }}>
+      <PenroseFigure completed={completed} total={total} complete={complete} width={width} color={theme.accent} />
       <span style={S.progressText}>
-        {pct >= threshold * 100 ? '✓' : `${completed}/${total}`}
+        {complete ? '✓' : `${completed}/${total}`}
       </span>
     </div>
   );
@@ -756,20 +755,13 @@ function Dashboard({ user, signOut }) {
             />
 
             {/* Mobile Progress */}
-            <div style={S.mobileStatsRow}>
-              <div style={S.mobileStatItem}>
-                <div style={S.mobileStatValue}>{dayProgress.completed}</div>
-                <div style={S.mobileStatLabel}>Done</div>
-              </div>
-              <div style={S.mobileStatItem}>
-                <div style={S.mobileStatValue}>{dayProgress.total}</div>
-                <div style={S.mobileStatLabel}>Total</div>
-              </div>
-              <div style={S.mobileStatItem}>
-                <div style={S.mobileStatValue}>{Math.round(dayProgress.percentage)}%</div>
-                <div style={S.mobileStatLabel}>Progress</div>
-              </div>
-            </div>
+            <ProgressBar
+              completed={dayProgress.completed}
+              total={dayProgress.total}
+              threshold={state.settings.completionThreshold}
+              width={64}
+              style={{ marginTop: 0, marginBottom: 28, padding: '18px 0', borderTop: `1px solid ${theme.border}`, borderBottom: `1px solid ${theme.border}` }}
+            />
 
             {/* Mobile Habits */}
             {Object.entries(habitsByBlock).map(([block, habits]) => (
