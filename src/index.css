@@ -83,3 +83,13 @@ body.dark {
     transition: none;
   }
 }
+
+.louver-slat {
+  transition: transform 250ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .louver-slat {
+    transition: none;
+  }
+}

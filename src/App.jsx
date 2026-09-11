@@ -6,6 +6,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { HabitRow } from './components/HabitRow';
 import { Checkmark } from './components/Checkmark';
 import { PenroseFigure } from './components/PenroseFigure';
+import { LouverNumeral } from './components/LouverNumeral';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
@@ -681,6 +682,8 @@ function Dashboard({ user, signOut }) {
     const bh = dayHabits.filter(h => h.timeBlock === block).sort((a, b) => a.sortOrder - b.sortOrder);
     if (bh.length > 0) habitsByBlock[block] = bh;
   });
+  // One slat per scheduled habit, in list order (time block, then sort order), for the day numeral.
+  const slatStates = Object.values(habitsByBlock).flat().map(h => !!completions[dk]?.[h.id]);
 
   // Mobile Layout
   if (isMobile) {
@@ -722,15 +725,14 @@ function Dashboard({ user, signOut }) {
                 >
                   ‹
                 </span>
-                <div style={S.mobileDayNumber}>
-                  {selectedDate.getDate()}
+                <LouverNumeral key={dk} value={selectedDate.getDate()} slats={slatStates} ink={theme.text} faint={theme.textFaintest} hinge={theme.border} style={S.mobileDayNumber}>
                   {isDayCompleted && (
                     <>
                       <div style={{ ...S.mobileStrikeX, transform: 'translate(-50%, -50%) rotate(45deg)' }} />
                       <div style={{ ...S.mobileStrikeX, transform: 'translate(-50%, -50%) rotate(-45deg)' }} />
                     </>
                   )}
-                </div>
+                </LouverNumeral>
                 <span
                   style={{ fontSize: 28, padding: '0 16px', color: theme.textFaint, cursor: 'pointer' }}
                   onClick={() => setSelectedDate(addDays(selectedDate, 1))}
@@ -887,8 +889,7 @@ function Dashboard({ user, signOut }) {
                 >
                   ‹
                 </span>
-                <div style={S.dayNumber}>
-                  {selectedDate.getDate()}
+                <LouverNumeral key={dk} value={selectedDate.getDate()} slats={slatStates} ink={theme.text} faint={theme.textFaintest} hinge={theme.border} style={S.dayNumber}>
                   <div style={{
                     ...S.strikeX,
                     transform: isDayCompleted ? 'translate(-50%, -50%) rotate(45deg) scaleX(1)' : 'translate(-50%, -50%) rotate(45deg) scaleX(0)',
@@ -899,7 +900,7 @@ function Dashboard({ user, signOut }) {
                     transform: isDayCompleted ? 'translate(-50%, -50%) rotate(-45deg) scaleX(1)' : 'translate(-50%, -50%) rotate(-45deg) scaleX(0)',
                     opacity: isDayCompleted ? 1 : 0
                   }} />
-                </div>
+                </LouverNumeral>
                 <span
                   style={{ ...S.navArrow, color: navHover === 'right' ? theme.text : theme.textFaintest }}
                   onClick={() => setSelectedDate(addDays(selectedDate, 1))}
