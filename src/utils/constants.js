@@ -61,6 +61,20 @@ export const SEED_HABITS = [
   createHabit('Shutdown ritual', 'evening', { type: 'daily' }, 5, 1),
   createHabit('No caffeine after 12 PM', 'evening', { type: 'daily' }, null, 2),
   createHabit('Lights out by bedtime', 'evening', { type: 'daily' }, null, 3),
+  // Mental fitness
+  createHabit('CBT thought challenge: reframe one negative thought', 'postwork', { type: 'specific_days', days: [1, 3] }, 5, 6),
+  createHabit('Read 15 pages of personal development or fiction', 'evening', { type: 'specific_days', days: [2, 4] }, 15, 4),
+  createHabit('Review your wins file and add recent accomplishments', 'postwork', { type: 'specific_days', days: [5] }, 10, 7),
+  createHabit('Learn something new: a podcast, article or documentary', 'postwork', { type: 'specific_days', days: [6] }, 20, 8),
+  createHabit("Gratitude reflection: the week's best moments", 'evening', { type: 'specific_days', days: [0] }, 10, 5),
+  // Social
+  createHabit("Text a friend you haven't talked to recently", 'postwork', { type: 'specific_days', days: [1] }, 2, 9),
+  createHabit('Have lunch with a colleague, away from your desk', 'afternoon', { type: 'specific_days', days: [2] }, null, 4),
+  createHabit('Plan a weekend hangout and send the invite', 'postwork', { type: 'specific_days', days: [3] }, 5, 10),
+  createHabit("Quality time: an 'events of the day' conversation", 'evening', { type: 'specific_days', days: [4] }, 15, 6),
+  createHabit('Call a friend or family member', 'postwork', { type: 'specific_days', days: [5] }, 15, 11),
+  createHabit('In-person social time: brunch, a sport or a hangout', 'afternoon', { type: 'specific_days', days: [6] }, null, 5),
+  createHabit('Relationship time with your partner, family or a close friend', 'evening', { type: 'specific_days', days: [0] }, null, 7),
 ];
 
 // Default state

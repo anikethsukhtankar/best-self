@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 
 export function AuthScreen({ onSignIn, onSkip }) {
-  const { theme, S } = useTheme();
+  const { S } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -11,7 +11,7 @@ export function AuthScreen({ onSignIn, onSkip }) {
     setError(null);
     try {
       await onSignIn();
-    } catch (err) {
+    } catch {
       setError('Failed to sign in. Please try again.');
     } finally {
       setLoading(false);

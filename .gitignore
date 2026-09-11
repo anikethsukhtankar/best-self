@@ -30,3 +30,4 @@ dist-ssr
 
 # Claude Code local config
 .claude/
+dist-visual

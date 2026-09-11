@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
-import { ThemeProvider, useTheme } from './hooks/useTheme.jsx';
+import { useTheme } from './hooks/useTheme';
+import { ThemeProvider } from './hooks/ThemeProvider';
 import { AuthScreen } from './components/AuthScreen';
 import { HabitRow } from './components/HabitRow';
 import { Checkmark } from './components/Checkmark';
@@ -10,12 +11,15 @@ import { LouverNumeral } from './components/LouverNumeral';
 import { HabitModal } from './components/HabitModal';
 import { ManageHabits } from './components/ManageHabits';
 import { TimeBlockEditor } from './components/TimeBlockEditor';
+import { YearGrid } from './components/YearGrid';
+import { TrendLine } from './components/TrendLine';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
-import { getHabitsForDay, getDayCompletion, isDayComplete, isHabitScheduledForDay } from './utils/habits';
+import { getHabitsForDay, getDayCompletion, isDayComplete } from './utils/habits';
+import { currentStreak, bestStreak, weekPercent, habitBreakdown } from './utils/insights';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -27,25 +31,6 @@ function useIsMobile(breakpoint = 768) {
     return () => window.removeEventListener('resize', handleResize);
   }, [breakpoint]);
   return isMobile;
-}
-
-// Progress Ring Component
-function ProgressRing({ progress, size = 140, strokeWidth = 3 }) {
-  const { theme } = useTheme();
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (progress / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={theme.ring} strokeWidth={strokeWidth} />
-      <circle
-        cx={size/2} cy={size/2} r={radius} fill="none" stroke={theme.accent} strokeWidth={strokeWidth}
-        strokeDasharray={circumference} strokeDashoffset={offset}
-        strokeLinecap="round" style={{ transition: 'stroke-dashoffset 500ms ease-out' }}
-      />
-    </svg>
-  );
 }
 
 // Week Strip Component
@@ -205,7 +190,7 @@ function StendigCalendar({ selectedDate, onSelect, habits, completions, threshol
 }
 
 // Left Panel (Timeline)
-function LeftPanel({ habits, completions, threshold, selectedDate, settings }) {
+function LeftPanel({ habits, completions, selectedDate, settings }) {
   const { S } = useTheme();
   const [now, setNow] = useState(new Date());
 
@@ -301,179 +286,58 @@ function LeftPanel({ habits, completions, threshold, selectedDate, settings }) {
   );
 }
 
-// Stats Row Component
-function StatsRow({ habits, completions, threshold }) {
-  const { S } = useTheme();
-
+// Stats Row: three thin numbers
+export function StatsRow({ habits, completions, threshold }) {
+  const { theme, S } = useTheme();
   const stats = useMemo(() => {
     const today = new Date();
-    let cur = 0;
-    for (let i = 0; i < 365; i++) {
-      const d = addDays(today, -i);
-      const { total } = getDayCompletion(habits, completions, d);
-      if (total === 0) continue;
-      if (isDayComplete(habits, completions, d, threshold)) cur++;
-      else break;
-    }
-
-    let best = 0, tmp = 0;
-    for (let i = 365; i >= 0; i--) {
-      const d = addDays(today, -i);
-      const { total } = getDayCompletion(habits, completions, d);
-      if (total === 0) continue;
-      if (isDayComplete(habits, completions, d, threshold)) {
-        tmp++;
-        if (tmp > best) best = tmp;
-      } else {
-        tmp = 0;
-      }
-    }
-
-    const ws = getWeekStart(today);
-    let wt = 0, wc = 0;
-    for (let i = 0; i < 7; i++) {
-      const d = addDays(ws, i);
-      if (d > today) break;
-      const { completed, total } = getDayCompletion(habits, completions, d);
-      wt += total;
-      wc += completed;
-    }
-
-    let mt = 0, mc = 0;
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    for (let d = new Date(monthStart); d <= today; d.setDate(d.getDate() + 1)) {
-      const { completed, total } = getDayCompletion(habits, completions, new Date(d));
-      mt += total;
-      mc += completed;
-    }
-    const monthPct = mt > 0 ? Math.round((mc / mt) * 100) : 0;
-
+    const week = weekPercent(habits, completions, today);
     return {
-      currentStreak: cur,
-      bestStreak: best,
-      weekPct: wt > 0 ? Math.round((wc / wt) * 100) : 0,
-      monthPct
+      current: currentStreak(habits, completions, threshold, today),
+      best: bestStreak(habits, completions, threshold, today),
+      week: week === null ? null : Math.round(week * 100),
     };
   }, [habits, completions, threshold]);
-
-  const streakProgress = Math.min((stats.currentStreak / Math.max(stats.bestStreak, 30)) * 100, 100);
+  const big = { fontSize: 'clamp(44px, 12vw, 72px)', fontWeight: 100, lineHeight: 1, color: theme.text, fontVariantNumeric: 'tabular-nums' };
+  const cells = [[stats.current, 'Day streak'], [stats.best, 'Best streak'], [stats.week === null ? '–' : `${stats.week}%`, 'This week']];
 
   return (
-    <div style={S.statsRow}>
-      <div style={S.statItem}>
-        <div style={S.statRing}>
-          <ProgressRing progress={streakProgress} />
-          <div style={S.statNumber}>{stats.currentStreak}</div>
+    <div style={{ ...S.statsRow, justifyContent: 'space-between', gap: 24, marginBottom: 72, flexWrap: 'nowrap' }}>
+      {cells.map(([value, label]) => (
+        <div key={label} style={{ flex: 1 }}>
+          <div style={big}>{value}</div>
+          <div style={{ ...S.statLabel, marginTop: 12 }}>{label}</div>
         </div>
-        <div style={S.statLabel}>Day Streak</div>
-      </div>
-      <div style={S.statItem}>
-        <div style={S.statRing}>
-          <ProgressRing progress={stats.weekPct} />
-          <div style={S.statNumber}>{stats.weekPct}%</div>
-        </div>
-        <div style={S.statLabel}>This Week</div>
-      </div>
-      <div style={S.statItem}>
-        <div style={S.statRing}>
-          <ProgressRing progress={stats.monthPct} />
-          <div style={S.statNumber}>{stats.monthPct}%</div>
-        </div>
-        <div style={S.statLabel}>This Month</div>
-      </div>
+      ))}
     </div>
   );
 }
 
-// Habit Breakdown Component
-function HabitBreakdown({ habits, completions }) {
+// Habit Breakdown: worst first, so what needs attention is at the top
+export function HabitBreakdown({ habits, completions }) {
   const { theme, S } = useTheme();
-  const [compactView, setCompactView] = useState(true);
-
-  const breakdown = useMemo(() => {
-    const today = new Date();
-    return habits.filter(h => !h.archivedAt).map(habit => {
-      let tot = 0, comp = 0, cur = 0, tmp = 0;
-      for (let i = 0; i < 30; i++) {
-        const d = addDays(today, -i);
-        if (isHabitScheduledForDay(habit, d)) {
-          tot++;
-          const dk = formatDateKey(d);
-          if (completions[dk]?.[habit.id]) {
-            comp++;
-            tmp++;
-          } else {
-            if (cur === 0) cur = tmp;
-            tmp = 0;
-          }
-        }
-      }
-      if (cur === 0) cur = tmp;
-      return { habit, rate: tot > 0 ? comp / tot : 0, streak: cur };
-    }).sort((a, b) => b.rate - a.rate);
-  }, [habits, completions]);
-
-  const getRateColor = (rate) => {
-    if (rate >= 0.8) return theme.gridHigh;
-    if (rate >= 0.6) return theme.gridMid;
-    if (rate >= 0.4) return theme.textMuted;
-    return theme.gridLow;
-  };
+  const rows = useMemo(() => habitBreakdown(habits, completions, 30, new Date()), [habits, completions]);
+  if (rows.length === 0) return null;
 
   return (
     <div style={S.breakdownSection}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div style={{ ...S.sectionLabel, marginBottom: 0 }}>Habit Performance · 30 Days</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button
-            style={{ ...S.trendToggle, padding: '4px 10px', fontSize: 11, color: compactView ? theme.text : theme.textMuted }}
-            onClick={() => setCompactView(true)}
-          >
-            Compact
-          </button>
-          <button
-            style={{ ...S.trendToggle, padding: '4px 10px', fontSize: 11, color: !compactView ? theme.text : theme.textMuted }}
-            onClick={() => setCompactView(false)}
-          >
-            Cards
-          </button>
+      <div style={S.sectionLabel}>Habits · 30 days · worst first</div>
+      {rows.map(({ habit, rate, streak, scheduled }) => (
+        <div key={habit.id} style={{ padding: '14px 0', borderBottom: `1px solid ${theme.borderLight}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
+            <span style={{ fontSize: 14, color: theme.text }}>{habit.text}</span>
+            <span style={{ fontSize: 13, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+              {rate === null ? '–' : `${Math.round(rate * 100)}%`}
+            </span>
+          </div>
+          <div style={{ height: 2, background: theme.border, marginTop: 8 }}>
+            <div style={{ height: '100%', width: `${Math.round((rate || 0) * 100)}%`, background: theme.accent }} />
+          </div>
+          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>
+            {scheduled === 0 ? 'not scheduled in the last 30 days' : streak > 0 ? `${streak}-day streak` : 'no current streak'}
+          </div>
         </div>
-      </div>
-
-      {compactView ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {breakdown.map(({ habit, rate, streak }) => (
-            <div
-              key={habit.id}
-              style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${theme.borderLight}` }}
-            >
-              <div style={{ width: 40, height: 4, background: theme.gridEmpty, borderRadius: 2, marginRight: 12, flexShrink: 0 }}>
-                <div style={{ width: (rate * 100) + '%', height: '100%', background: getRateColor(rate), borderRadius: 2 }} />
-              </div>
-              <span style={{ width: 40, fontSize: 13, fontWeight: 400, color: theme.text, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                {Math.round(rate * 100)}%
-              </span>
-              <span style={{ flex: 1, fontSize: 13, color: theme.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {habit.text}
-              </span>
-              {streak > 0 && (
-                <span style={{ fontSize: 11, color: theme.textMuted, marginLeft: 8, flexShrink: 0 }}>{streak}d</span>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={S.breakdownGrid}>
-          {breakdown.map(({ habit, rate, streak }) => (
-            <div key={habit.id} style={S.breakdownCard}>
-              <div style={S.breakdownCardHeader}>
-                <span style={S.breakdownCardTitle}>{habit.text}</span>
-                <span style={S.breakdownCardPct}>{Math.round(rate * 100)}%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -515,7 +379,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
         onImport(data);
         setImportStatus({ type: 'success', message: 'Data imported successfully!' });
         setTimeout(() => onClose(), 1500);
-      } catch (err) {
+      } catch {
         setImportStatus({ type: 'error', message: 'Failed to parse backup file' });
       }
     };
@@ -651,7 +515,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 }
 
 // Main Dashboard Component
-function Dashboard({ user, signOut }) {
+function Dashboard({ user, signOut, onDarkMode }) {
   const isMobile = useIsMobile();
   const { state, save, importData, exportData, syncing, lastSynced } = useData(user);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -715,6 +579,9 @@ function Dashboard({ user, signOut }) {
   }, [state, save]);
 
   const closeEditor = useCallback(() => setEditor(null), []);
+
+  const darkMode = Boolean(state?.settings?.darkMode);
+  useEffect(() => { if (onDarkMode) onDarkMode(darkMode); }, [darkMode, onDarkMode]);
 
   if (!state) {
     return (
@@ -875,7 +742,12 @@ function Dashboard({ user, signOut }) {
           </>
         ) : (
           <>
+            {Object.keys(completions).length === 0 && (
+              <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 40 }}>Insights fill in as you check things off.</p>
+            )}
             <StatsRow habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <YearGrid habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <TrendLine habits={state.habits} completions={completions} />
             <HabitBreakdown habits={state.habits} completions={completions} />
           </>
         )}
@@ -1068,7 +940,12 @@ function Dashboard({ user, signOut }) {
           </>
         ) : (
           <>
+            {Object.keys(completions).length === 0 && (
+              <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 40 }}>Insights fill in as you check things off.</p>
+            )}
             <StatsRow habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <YearGrid habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <TrendLine habits={state.habits} completions={completions} />
             <HabitBreakdown habits={state.habits} completions={completions} />
           </>
         )}
@@ -1128,26 +1005,6 @@ export default function App() {
     }
   });
 
-  // Update dark mode when settings change
-  useEffect(() => {
-    const checkDarkMode = () => {
-      try {
-        const stored = localStorage.getItem('best-self-state');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setDarkMode(parsed.settings?.darkMode || false);
-        }
-      } catch {}
-    };
-
-    window.addEventListener('storage', checkDarkMode);
-    const interval = setInterval(checkDarkMode, 1000);
-    return () => {
-      window.removeEventListener('storage', checkDarkMode);
-      clearInterval(interval);
-    };
-  }, []);
-
   if (loading) {
     return (
       <ThemeProvider darkMode={darkMode}>
@@ -1169,7 +1026,7 @@ export default function App() {
 
   return (
     <ThemeProvider darkMode={darkMode}>
-      <Dashboard user={user} signOut={signOut} />
+      <Dashboard user={user} signOut={signOut} onDarkMode={setDarkMode} />
     </ThemeProvider>
   );
 }

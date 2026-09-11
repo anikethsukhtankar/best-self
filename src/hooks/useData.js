@@ -47,7 +47,7 @@ export function useData(user) {
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
           setState(stored ? JSON.parse(stored) : DEFAULT_STATE);
-        } catch (err) {
+        } catch {
           setState(DEFAULT_STATE);
         }
       }

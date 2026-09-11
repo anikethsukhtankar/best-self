@@ -11,10 +11,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(isFirebaseConfigured);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      setLoading(false);
-      return;
-    }
+    if (!isFirebaseConfigured || !auth) return; // loading already starts false in that case
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
