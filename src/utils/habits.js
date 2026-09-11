@@ -1,5 +1,6 @@
 // Habit-related utility functions
 import { formatDateKey } from './date';
+import { DAY_NAMES } from './constants';
 
 export const isHabitScheduledForDay = (habit, date) => {
   if (habit.archivedAt) return false;
@@ -44,4 +45,12 @@ export const sanitizeData = (data) => {
       id: sanitize(t.id)
     }))
   };
+};
+
+// Human label for a habit's recurrence, e.g. 'Every day' or 'Mon · Wed · Fri'.
+export const describeRecurrence = (habit) => {
+  if (!habit.recurrence || habit.recurrence.type !== 'specific_days') return 'Every day';
+  const days = [...(habit.recurrence.days || [])].sort((a, b) => a - b);
+  if (days.length === 7) return 'Every day';
+  return days.map((d) => DAY_NAMES[d]).join(' · ');
 };

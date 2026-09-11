@@ -7,6 +7,8 @@ import { HabitRow } from './components/HabitRow';
 import { Checkmark } from './components/Checkmark';
 import { PenroseFigure } from './components/PenroseFigure';
 import { LouverNumeral } from './components/LouverNumeral';
+import { HabitModal } from './components/HabitModal';
+import { ManageHabits } from './components/ManageHabits';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
@@ -637,6 +639,7 @@ function Dashboard({ user, signOut }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [todoText, setTodoText] = useState('');
   const [navHover, setNavHover] = useState(null);
+  const [editor, setEditor] = useState(null); // null | { habit } | { defaultBlock }
 
   const { theme, S } = useTheme();
 
@@ -659,6 +662,35 @@ function Dashboard({ user, signOut }) {
   const deleteTodo = useCallback(id => {
     save({ ...state, todos: state.todos.filter(t => t.id !== id) });
   }, [state, save]);
+
+  const addHabit = useCallback(fields => {
+    const inBlock = state.habits.filter(h => h.timeBlock === fields.timeBlock);
+    const sortOrder = inBlock.length ? Math.max(...inBlock.map(h => h.sortOrder ?? 0)) + 1 : 0;
+    save({ ...state, habits: [...state.habits, { id: generateId(), createdAt: new Date().toISOString(), sortOrder, ...fields }] });
+    setEditor(null);
+  }, [state, save]);
+
+  const updateHabit = useCallback((id, fields) => {
+    save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, ...fields } : h) });
+    setEditor(null);
+  }, [state, save]);
+
+  // Soft delete: the habit leaves the daily view, its completion history stays for Insights.
+  const archiveHabit = useCallback(id => {
+    save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, archivedAt: new Date().toISOString() } : h) });
+    setEditor(null);
+  }, [state, save]);
+
+  const restoreHabit = useCallback(id => {
+    save({ ...state, habits: state.habits.map(h => {
+      if (h.id !== id) return h;
+      const copy = { ...h };
+      delete copy.archivedAt;
+      return copy;
+    }) });
+  }, [state, save]);
+
+  const closeEditor = useCallback(() => setEditor(null), []);
 
   if (!state) {
     return (
@@ -695,7 +727,10 @@ function Dashboard({ user, signOut }) {
             {MONTH_NAMES[selectedDate.getMonth()].slice(0, 3)} {selectedDate.getDate()}
             <span style={{ fontSize: 10 }}>▼</span>
           </button>
-          {user && <span style={{ fontSize: 11, color: theme.textMuted }}>☁️</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {user && <span style={{ fontSize: 11, color: theme.textMuted }}>☁️</span>}
+            <button style={{ ...S.tab, fontSize: 28, fontWeight: 100, color: theme.text, lineHeight: 1 }} onClick={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })} aria-label="New habit">+</button>
+          </div>
         </div>
 
         {/* Calendar Dropdown */}
@@ -711,7 +746,18 @@ function Dashboard({ user, signOut }) {
           </div>
         )}
 
-        {tab === 'today' ? (
+        {tab === 'manage' ? (
+          <ManageHabits
+            habits={state.habits}
+            labels={labels}
+            blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS}
+            onBack={() => setTab('today')}
+            onNew={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })}
+            onEdit={habit => setEditor({ habit })}
+            onArchive={archiveHabit}
+            onRestore={restoreHabit}
+          />
+        ) : tab === 'today' ? (
           <>
             {/* Mobile Date Header */}
             <div style={S.mobileDateHeader}>
@@ -824,13 +870,24 @@ function Dashboard({ user, signOut }) {
           </button>
         </div>
 
+        {editor && (
+          <HabitModal
+            habit={editor.habit}
+            labels={labels}
+            blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS}
+            defaultBlock={editor.defaultBlock}
+            onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
+            onArchive={archiveHabit}
+            onClose={closeEditor}
+          />
+        )}
         {showSettings && (
           <SettingsModal
             settings={state.settings}
             onSave={s => save({ ...state, settings: s })}
             onClose={() => setShowSettings(false)}
             habits={state.habits}
-            onManageHabits={() => {}}
+            onManageHabits={() => setTab('manage')}
             fullState={state}
             onImport={importData}
             onExport={exportData}
@@ -869,12 +926,24 @@ function Dashboard({ user, signOut }) {
               ☁️ Synced
             </span>
           )}
+          <button style={{ ...S.tab, fontSize: 24, fontWeight: 100, color: theme.textMuted, marginRight: 32, lineHeight: 1 }} onClick={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })} aria-label="New habit">+</button>
           <button style={{ ...S.tab, fontSize: 12 }} onClick={() => setShowSettings(true)}>
             Settings
           </button>
         </div>
 
-        {tab === 'today' ? (
+        {tab === 'manage' ? (
+          <ManageHabits
+            habits={state.habits}
+            labels={labels}
+            blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS}
+            onBack={() => setTab('today')}
+            onNew={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })}
+            onEdit={habit => setEditor({ habit })}
+            onArchive={archiveHabit}
+            onRestore={restoreHabit}
+          />
+        ) : tab === 'today' ? (
           <>
             <div style={S.dateHeader}>
               <div style={S.monthYear}>
@@ -935,6 +1004,7 @@ function Dashboard({ user, signOut }) {
                     habit={habit}
                     checked={completions[dk]?.[habit.id] || false}
                     onToggle={() => toggleHabit(habit.id)}
+                    onEdit={h => setEditor({ habit: h })}
                   />
                 ))}
               </div>
@@ -977,13 +1047,24 @@ function Dashboard({ user, signOut }) {
           </>
         )}
 
+        {editor && (
+          <HabitModal
+            habit={editor.habit}
+            labels={labels}
+            blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS}
+            defaultBlock={editor.defaultBlock}
+            onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
+            onArchive={archiveHabit}
+            onClose={closeEditor}
+          />
+        )}
         {showSettings && (
           <SettingsModal
             settings={state.settings}
             onSave={s => save({ ...state, settings: s })}
             onClose={() => setShowSettings(false)}
             habits={state.habits}
-            onManageHabits={() => {}}
+            onManageHabits={() => setTab('manage')}
             fullState={state}
             onImport={importData}
             onExport={exportData}

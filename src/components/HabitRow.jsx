@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Checkmark } from './Checkmark';
 
-export function HabitRow({ habit, checked, onToggle }) {
+export function HabitRow({ habit, checked, onToggle, onEdit }) {
   const { theme, S } = useTheme();
   const [hovered, setHovered] = useState(false);
 
@@ -23,6 +23,16 @@ export function HabitRow({ habit, checked, onToggle }) {
       }}>
         {habit.text}
       </span>
+      {onEdit && (
+        <button
+          style={{ ...S.tab, fontSize: 12, color: theme.textFaintest, opacity: hovered ? 1 : 0, marginLeft: 16 }}
+          onClick={(ev) => { ev.stopPropagation(); onEdit(habit); }}
+          aria-label={`Edit ${habit.text}`}
+          tabIndex={-1}
+        >
+          Edit
+        </button>
+      )}
       {habit.durationMinutes && (
         <span style={S.habitDuration}>{habit.durationMinutes} min</span>
       )}
