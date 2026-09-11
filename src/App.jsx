@@ -493,7 +493,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
             />
           </div>
           {importStatus && (
-            <p style={{ ...S.settingsNote, marginTop: 12, color: importStatus.type === 'error' ? '#e53935' : '#4caf50' }}>
+            <p style={{ ...S.settingsNote, marginTop: 12, color: theme.text }}>
               {importStatus.message}
             </p>
           )}

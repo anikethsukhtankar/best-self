@@ -41,5 +41,5 @@ const report = {
   statLabels: ['Day streak', 'Best streak', 'This week'].map((l) => html.includes(l)),
 };
 console.log(JSON.stringify(report));
-if (report.gridCells < 300 || report.trendPaths < 1 || report.breakdownRows < 5 || report.statLabels.includes(false)) { console.error('SMOKE FAILED'); process.exit(1); }
+if (report.gridCells < 300 || report.trendPaths < 1 || report.breakdownRows < 5 || report.statLabels.includes(false)) { throw new Error('SMOKE FAILED: ' + JSON.stringify(report)); }
 console.log('smoke ok');

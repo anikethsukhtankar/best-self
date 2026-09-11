@@ -43,7 +43,7 @@ export function AuthScreen({ onSignIn, onSkip }) {
         </button>
 
         {error && (
-          <p style={{ color: '#e53935', fontSize: 14, marginTop: 16 }}>{error}</p>
+          <p style={{ ...S.settingsNote, marginTop: 16 }}>{error}</p>
         )}
 
         <p style={S.authDivider}>or</p>
