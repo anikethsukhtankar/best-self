@@ -1,6 +1,6 @@
 // Habit-related utility functions
-import { formatDateKey } from './date';
-import { DAY_NAMES } from './constants';
+import { formatDateKey } from './date.js';
+import { DAY_NAMES } from './constants.js';
 
 export const isHabitScheduledForDay = (habit, date) => {
   if (habit.archivedAt) return false;

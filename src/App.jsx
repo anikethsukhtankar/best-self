@@ -9,12 +9,14 @@ import { PenroseFigure } from './components/PenroseFigure';
 import { LouverNumeral } from './components/LouverNumeral';
 import { HabitModal } from './components/HabitModal';
 import { ManageHabits } from './components/ManageHabits';
+import { TimeBlockEditor } from './components/TimeBlockEditor';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
 import { getHabitsForDay, getDayCompletion, isDayComplete, isHabitScheduledForDay } from './utils/habits';
+import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
 function useIsMobile(breakpoint = 768) {
@@ -97,7 +99,7 @@ function ProgressBar({ completed, total, threshold, width = 96, style }) {
 }
 
 // Todo Row Component
-function TodoRow({ todo, onToggle, onDelete }) {
+function TodoRow({ todo, tag, onToggle, onDelete }) {
   const { theme, S } = useTheme();
   const [hovered, setHovered] = useState(false);
   const checked = !!todo.completedAt;
@@ -121,6 +123,9 @@ function TodoRow({ todo, onToggle, onDelete }) {
       }}>
         {todo.text}
       </span>
+      {tag && (
+        <span style={{ fontSize: 12, color: theme.textFaint, marginLeft: 16, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tag}</span>
+      )}
       <span
         style={{ fontSize: 14, color: theme.textFaintest, cursor: 'pointer', padding: '0 8px', opacity: hovered ? 1 : 0 }}
         onClick={(ev) => { ev.stopPropagation(); onDelete(todo.id); }}
@@ -479,7 +484,16 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
   const [threshold, setThreshold] = useState(settings.completionThreshold);
   const [darkMode, setDarkMode] = useState(settings.darkMode || false);
   const [importStatus, setImportStatus] = useState(null);
-  const fileInputRef = useState(null);
+  const [blocks, setBlocks] = useState({
+    labels: { ...TIME_BLOCK_LABELS, ...(settings.timeBlockLabels || {}) },
+    order: settings.timeBlockOrder || TIME_BLOCKS,
+  });
+
+  useEffect(() => {
+    const onKey = ev => { if (ev.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const todayHabits = getHabitsForDay(habits, new Date());
   const required = Math.ceil(todayHabits.length * threshold);
@@ -573,6 +587,12 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
         </div>
 
         <div style={S.settingsSection}>
+          <label style={S.modalLabel}>Time blocks</label>
+          <TimeBlockEditor labels={blocks.labels} order={blocks.order} onChange={setBlocks} />
+          <p style={S.settingsNote}>Rename a block or drag it into a new order. Blocks with nothing scheduled stay hidden.</p>
+        </div>
+
+        <div style={S.settingsSection}>
           <label style={S.modalLabel}>Habits</label>
           <button
             style={{ ...S.modalButton, marginTop: 0, background: 'transparent', color: theme.text, border: `1px solid ${theme.accent}` }}
@@ -618,7 +638,8 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
         <button
           style={S.modalButton}
           onClick={() => {
-            onSave({ ...settings, completionThreshold: threshold, darkMode });
+            const timeBlockLabels = Object.fromEntries(TIME_BLOCKS.map(b => [b, (blocks.labels[b] || '').trim() || TIME_BLOCK_LABELS[b]]));
+            onSave({ ...settings, completionThreshold: threshold, darkMode, timeBlockLabels, timeBlockOrder: blocks.order });
             onClose();
           }}
         >
@@ -652,8 +673,11 @@ function Dashboard({ user, signOut }) {
   }, [state, selectedDate, save]);
 
   const addTodo = useCallback(text => {
-    save({ ...state, todos: [...state.todos, { id: generateId(), text, createdAt: new Date().toISOString() }] });
-  }, [state, save]);
+    const dk = formatDateKey(selectedDate);
+    const todo = { id: generateId(), text, createdAt: new Date().toISOString() };
+    if (dk !== formatDateKey(new Date())) todo.dueDate = dk;
+    save({ ...state, todos: [...state.todos, todo] });
+  }, [state, save, selectedDate]);
 
   const toggleTodo = useCallback(id => {
     save({ ...state, todos: state.todos.map(t => t.id === id ? { ...t, completedAt: t.completedAt ? null : new Date().toISOString() } : t) });
@@ -716,6 +740,8 @@ function Dashboard({ user, signOut }) {
   });
   // One slat per scheduled habit, in list order (time block, then sort order), for the day numeral.
   const slatStates = Object.values(habitsByBlock).flat().map(h => !!completions[dk]?.[h.id]);
+  const dayTodos = getTodosForDay(state.todos, selectedDate, today);
+  const todoTag = todo => (todo.carriedFrom ? shortDate(todo.carriedFrom) : (todo.dueDate && todo.dueDate !== dk ? shortDate(todo.dueDate) : null));
 
   // Mobile Layout
   if (isMobile) {
@@ -829,8 +855,8 @@ function Dashboard({ user, signOut }) {
             {/* Mobile Todos */}
             <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${theme.border}` }}>
               <div style={S.sectionLabel}>Tasks</div>
-              {state.todos.map(todo => (
-                <TodoRow key={todo.id} todo={todo} onToggle={toggleTodo} onDelete={deleteTodo} />
+              {dayTodos.map(todo => (
+                <TodoRow key={todo.id} todo={todo} tag={todoTag(todo)} onToggle={toggleTodo} onDelete={deleteTodo} />
               ))}
               <input
                 type="text"
@@ -1012,8 +1038,8 @@ function Dashboard({ user, signOut }) {
 
             <div style={S.todoSection}>
               <div style={S.sectionLabel}>Tasks</div>
-              {state.todos.map(todo => (
-                <TodoRow key={todo.id} todo={todo} onToggle={toggleTodo} onDelete={deleteTodo} />
+              {dayTodos.map(todo => (
+                <TodoRow key={todo.id} todo={todo} tag={todoTag(todo)} onToggle={toggleTodo} onDelete={deleteTodo} />
               ))}
               <input
                 type="text"
