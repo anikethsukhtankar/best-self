@@ -28,3 +28,14 @@ test('recurrence labels read naturally', () => {
   assert.equal(describeRecurrence(tueThu), 'Tue · Thu');
   assert.equal(describeRecurrence({ recurrence: { type: 'specific_days', days: [0, 1, 2, 3, 4, 5, 6] } }), 'Every day');
 });
+
+test('sanitizeData normalises shape and keeps text as typed', async () => {
+  const { sanitizeData } = await import('../src/utils/habits.js');
+  const out = sanitizeData({ habits: [{ id: 'a', text: 'x < y' }, { nope: true }], todos: null, settings: { darkMode: true } });
+  assert.equal(out.habits.length, 1);
+  assert.equal(out.habits[0].text, 'x < y');
+  assert.deepEqual(out.todos, []);
+  assert.deepEqual(out.completions, {});
+  assert.equal(out.settings.darkMode, true);
+  assert.equal(out.settings.completionThreshold, 0.8);
+});

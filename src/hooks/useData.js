@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../firebase';
+import { loadFirebase, isFirebaseConfigured } from '../firebase';
 import { STORAGE_KEY, DEFAULT_STATE } from '../utils/constants';
 import { sanitizeData } from '../utils/habits';
 
@@ -12,10 +11,12 @@ export function useData(user) {
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
-      if (user && isFirebaseConfigured && db) {
+      if (user && isFirebaseConfigured) {
         // User is signed in - load from Firestore
         try {
-          const docRef = doc(db, 'users', user.uid);
+          const fb = await loadFirebase();
+          const { doc, getDoc, setDoc } = fb.firestoreMod;
+          const docRef = doc(fb.db, 'users', user.uid);
           const docSnap = await getDoc(docRef);
 
           if (docSnap.exists()) {
@@ -58,39 +59,49 @@ export function useData(user) {
 
   // Subscribe to real-time updates when signed in
   useEffect(() => {
-    if (!user || !isFirebaseConfigured || !db) return;
+    if (!user || !isFirebaseConfigured) return undefined;
 
-    const docRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        // Only update if data is different (avoid loops)
-        setState(prev => {
-          const newData = sanitizeData(data);
-          if (JSON.stringify(prev) !== JSON.stringify(newData)) {
-            setLastSynced(new Date());
-            return newData;
-          }
-          return prev;
-        });
-      }
-    }, (error) => {
-      console.error('Snapshot error:', error);
+    let cancelled = false;
+    let unsubscribe = () => {};
+    loadFirebase().then((fb) => {
+      if (cancelled || !fb) return;
+      const { doc, onSnapshot } = fb.firestoreMod;
+      const docRef = doc(fb.db, 'users', user.uid);
+      unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // Only update if data is different (avoid loops)
+          setState(prev => {
+            const newData = sanitizeData(data);
+            if (JSON.stringify(prev) !== JSON.stringify(newData)) {
+              setLastSynced(new Date());
+              return newData;
+            }
+            return prev;
+          });
+        }
+      }, (error) => {
+        console.error('Snapshot error:', error);
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [user]);
 
   // Save data
   const save = useCallback(async (newState) => {
     setState(newState);
 
-    if (user && isFirebaseConfigured && db) {
+    if (user && isFirebaseConfigured) {
       // Save to Firestore
       setSyncing(true);
       try {
-        const docRef = doc(db, 'users', user.uid);
-        await setDoc(docRef, {
+        const fb = await loadFirebase();
+        const docRef = fb.firestoreMod.doc(fb.db, 'users', user.uid);
+        await fb.firestoreMod.setDoc(docRef, {
           ...newState,
           updatedAt: new Date().toISOString()
         });

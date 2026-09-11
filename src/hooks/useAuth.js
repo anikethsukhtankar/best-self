@@ -1,47 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  signInWithPopup,
-  signOut as firebaseSignOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth, googleProvider, isFirebaseConfigured } from '../firebase';
+import { loadFirebase, isFirebaseConfigured } from '../firebase';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(isFirebaseConfigured);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) return; // loading already starts false in that case
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    if (!isFirebaseConfigured) return undefined;
+    let cancelled = false;
+    let unsubscribe = () => {};
+    loadFirebase()
+      .then((fb) => {
+        if (cancelled || !fb) return;
+        unsubscribe = fb.authMod.onAuthStateChanged(fb.auth, (nextUser) => {
+          setUser(nextUser);
+          setLoading(false);
+        });
+      })
+      .catch((error) => {
+        console.error('Firebase failed to load:', error);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    if (!isFirebaseConfigured || !auth) {
-      throw new Error('Firebase is not configured');
-    }
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    }
+    const fb = await loadFirebase();
+    if (!fb) throw new Error('Firebase is not configured');
+    const result = await fb.authMod.signInWithPopup(fb.auth, fb.googleProvider);
+    return result.user;
   }, []);
 
   const signOut = useCallback(async () => {
-    if (!isFirebaseConfigured || !auth) {
-      return;
-    }
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error('Sign out error:', error);
-      throw error;
-    }
+    const fb = await loadFirebase();
+    if (fb) await fb.authMod.signOut(fb.auth);
   }, []);
 
   return { user, loading, signInWithGoogle, signOut, isFirebaseConfigured };

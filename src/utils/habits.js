@@ -1,6 +1,6 @@
 // Habit-related utility functions
 import { formatDateKey } from './date.js';
-import { DAY_NAMES } from './constants.js';
+import { DAY_NAMES, DEFAULT_STATE } from './constants.js';
 
 export const isHabitScheduledForDay = (habit, date) => {
   if (habit.archivedAt) return false;
@@ -23,27 +23,17 @@ export const getDayCompletion = (habits, completions, date) => {
 export const isDayComplete = (habits, completions, date, threshold) =>
   getDayCompletion(habits, completions, date).percentage >= threshold;
 
-// Sanitize string to prevent XSS
-export const sanitize = (str) => {
-  if (typeof str !== 'string') return str;
-  return str.replace(/[<>]/g, '');
-};
-
-// Sanitize imported data
+// Normalise imported or synced data: right shapes, defaults filled in. Text is left as typed;
+// React escapes it on render, so stripping characters would only mangle habit names.
 export const sanitizeData = (data) => {
+  const src = data && typeof data === 'object' ? data : {};
+  const list = (arr) => (Array.isArray(arr) ? arr.filter((x) => x && typeof x.id === 'string' && typeof x.text === 'string') : []);
   return {
-    ...data,
-    habits: (data.habits || []).map(h => ({
-      ...h,
-      text: sanitize(h.text),
-      id: sanitize(h.id),
-      timeBlock: sanitize(h.timeBlock)
-    })),
-    todos: (data.todos || []).map(t => ({
-      ...t,
-      text: sanitize(t.text),
-      id: sanitize(t.id)
-    }))
+    ...src,
+    habits: list(src.habits),
+    todos: list(src.todos),
+    completions: src.completions && typeof src.completions === 'object' ? src.completions : {},
+    settings: { ...DEFAULT_STATE.settings, ...(src.settings || {}) },
   };
 };
 
