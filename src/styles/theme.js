@@ -140,13 +140,6 @@ export const getStyles = (t) => ({
   stendigHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36 },
   stendigMonth: { fontSize: 14, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.text, fontWeight: 400 },
   stendigNavArrow: { fontSize: 24, fontWeight: 200, color: t.textFaint, cursor: 'pointer', padding: 4, lineHeight: 1 },
-  stendigGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 },
-  stendigDayHeader: { fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.textFaintest, textAlign: 'center', paddingBottom: 16 },
-  stendigDay: { aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 300, color: t.text, cursor: 'pointer', position: 'relative' },
-  stendigDayToday: { fontWeight: 500 },
-  stendigDaySelected: { background: t.accent, color: t.accentText, borderRadius: '50%' },
-  stendigDayOtherMonth: { color: t.textFaintest },
-  stendigStrikeX: { position: 'absolute', top: '50%', left: '50%', width: '60%', height: 1.5, background: t.accent },
   // Timeline styles
   timelineContainer: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   timelineHeader: { marginBottom: 32 },

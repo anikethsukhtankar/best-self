@@ -70,9 +70,9 @@ Pushing to `main` runs `.github/workflows/deploy.yml`: install, lint, test, buil
 
 ```
 src/App.jsx                 screens and wiring
-src/components/             HabitRow, HabitModal, ManageHabits, TimeBlockEditor, LouverNumeral, PenroseFigure, YearGrid, TrendLine, AuthScreen
+src/components/             HabitRow, HabitModal, ManageHabits, TimeBlockEditor, LouverNumeral, PenroseFigure, StendigCalendar, YearGrid, TrendLine, AuthScreen
 src/hooks/                  useData (persistence), useAuth (optional Firebase), useTheme + ThemeProvider
-src/utils/                  pure logic: habits, todos, insights, penrose, date, constants (seed habits)
+src/utils/                  pure logic: habits, todos, insights, penrose, calendar (month grid geometry), date, constants (seed habits)
 src/styles/theme.js         light and dark tokens and style objects
 public/                     manifest, service worker, icons
 tests/                      node:test suites and the visual / smoke harness

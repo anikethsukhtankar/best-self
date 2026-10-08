@@ -13,6 +13,7 @@ import { ManageHabits } from './components/ManageHabits';
 import { TimeBlockEditor } from './components/TimeBlockEditor';
 import { YearGrid } from './components/YearGrid';
 import { TrendLine } from './components/TrendLine';
+import { StendigCalendar } from './components/StendigCalendar';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
@@ -117,74 +118,6 @@ function TodoRow({ todo, tag, onToggle, onDelete }) {
       >
         ×
       </span>
-    </div>
-  );
-}
-
-// Stendig Calendar Component
-function StendigCalendar({ selectedDate, onSelect, habits, completions, threshold }) {
-  const { theme, S } = useTheme();
-  const [viewMonth, setViewMonth] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
-  const today = new Date();
-
-  const calendarDays = useMemo(() => {
-    const year = viewMonth.getFullYear();
-    const month = viewMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-    const days = [];
-    const current = new Date(startDate);
-    for (let i = 0; i < 42; i++) {
-      days.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return days;
-  }, [viewMonth]);
-
-  return (
-    <div style={S.stendigCalendar}>
-      <div style={S.stendigHeader}>
-        <span style={S.stendigNavArrow} onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}>‹</span>
-        <span style={S.stendigMonth}>{MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}</span>
-        <span style={S.stendigNavArrow} onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}>›</span>
-      </div>
-      <div style={S.stendigGrid}>
-        {DAY_LETTERS.map((d, i) => (
-          <div key={'h' + i} style={S.stendigDayHeader}>{d}</div>
-        ))}
-        {calendarDays.map((day, i) => {
-          const isCurrentMonth = day.getMonth() === viewMonth.getMonth();
-          const isSelected = isSameDay(day, selectedDate);
-          const isCurrentDay = isSameDay(day, today);
-          const { percentage, total } = getDayCompletion(habits, completions, day);
-          const isComplete = total > 0 && percentage >= threshold && day <= today;
-
-          let style = { ...S.stendigDay };
-          if (!isCurrentMonth) style = { ...style, ...S.stendigDayOtherMonth };
-          if (isCurrentDay) style = { ...style, ...S.stendigDayToday };
-          if (isSelected) style = { ...style, ...S.stendigDaySelected };
-
-          return (
-            <div key={i} style={style} onClick={() => onSelect(day)}>
-              {day.getDate()}
-              {isComplete && !isSelected && (
-                <>
-                  <div style={{ ...S.stendigStrikeX, transform: 'translate(-50%, -50%) rotate(45deg)' }} />
-                  <div style={{ ...S.stendigStrikeX, transform: 'translate(-50%, -50%) rotate(-45deg)' }} />
-                </>
-              )}
-              {isComplete && isSelected && (
-                <>
-                  <div style={{ ...S.stendigStrikeX, background: theme.accentText, transform: 'translate(-50%, -50%) rotate(45deg)' }} />
-                  <div style={{ ...S.stendigStrikeX, background: theme.accentText, transform: 'translate(-50%, -50%) rotate(-45deg)' }} />
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

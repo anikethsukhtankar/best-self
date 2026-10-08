@@ -32,7 +32,9 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
 ## Where things live
 
 - `src/App.jsx` screens and wiring; components in `src/components/`; pure logic in `src/utils/`
-  (`insights.js`, `habits.js`, `todos.js`, `penrose.js` are tested, keep them React-free).
+  (`insights.js`, `habits.js`, `todos.js`, `penrose.js`, `calendar.js` are tested, keep them React-free).
+- The month calendar is one SVG (`StendigCalendar.jsx`) drawn from `calendar.js`, which follows Chrome's
+  pixel snapping so it renders identically to the CSS grid it replaced.
 - Seed habits in `src/utils/constants.js`. Persistence in `src/hooks/useData.js`.
 - `public/sw.js` is the service worker; bump `VERSION` after a breaking change.
 - `.github/workflows/deploy.yml` lints, tests, builds and force-publishes `dist/` to `gh-pages` on every
@@ -52,7 +54,7 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
   https://claude.ai/code/artifact/6c349b03-d70e-4676-8065-47b9ea1c9e15 (owner's Claude account).
   Built: The Impossible Figure (progress) and Louvers (numeral). Dropped: Growth Rings (checkboxes read as
   targets). Next: "The Turn", press the month name and the calendar tilts into an isometric elevation of
-  completed days with a bridge line over missed days; it needs the month grid ported to SVG first.
+  completed days with a bridge line over missed days. Step one (month grid ported to SVG) is done.
 - Colour decision is final: pure black and white, hatching is the only texture.
 - Open engineering items: per-day Firestore documents before enabling sync (today it is whole-document,
   last-write-wins); opt-in reminders once installed; a visual harness exists in `tests/visual/` but
