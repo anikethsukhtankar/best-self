@@ -43,3 +43,19 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
 - Small steps, one feature per commit, conventional-commit subjects (`feat(today): …`, `style: …`).
 - No `<form>` tags; onClick/onChange/onKeyDown handlers only. Escape closes every modal.
 - Never strip characters from people's text; React escapes on render.
+
+## Handoff (as of 2026-10-07)
+
+- Everything through the PWA and deploy workflow is merged to `main` and live. `feat/habit-editor`,
+  `game/louvers` and `game/impossible-figure` are merged ancestors and can be deleted.
+- Game direction came from a 36-concept ideation sprint; the ranked board with mockups is at
+  https://claude.ai/code/artifact/6c349b03-d70e-4676-8065-47b9ea1c9e15 (owner's Claude account).
+  Built: The Impossible Figure (progress) and Louvers (numeral). Dropped: Growth Rings (checkboxes read as
+  targets). Next: "The Turn", press the month name and the calendar tilts into an isometric elevation of
+  completed days with a bridge line over missed days; it needs the month grid ported to SVG first.
+- Colour decision is final: pure black and white, hatching is the only texture.
+- Open engineering items: per-day Firestore documents before enabling sync (today it is whole-document,
+  last-write-wins); opt-in reminders once installed; a visual harness exists in `tests/visual/` but
+  has only been exercised by the SSR smoke, not in a browser.
+- Working style the owner asked for: one feature per step, committed per step, verified with rendered
+  proof before moving on; no multi-agent fan-outs unless asked.
