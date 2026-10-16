@@ -2,7 +2,7 @@
 // Build with `npm run visual`, then open dist-visual/tests/visual/insights.html (add ?dark=1 for dark mode).
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '../../src/hooks/ThemeProvider';
-import { StatsRow, HabitBreakdown } from '../../src/App';
+import { StatsRow, HabitBreakdown } from '../../src/components/InsightsView';
 import { YearGrid } from '../../src/components/YearGrid';
 import { TrendLine } from '../../src/components/TrendLine';
 import { SEED_HABITS } from '../../src/utils/constants';

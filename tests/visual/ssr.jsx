@@ -2,7 +2,7 @@
 // Build: npx vite build --ssr tests/visual/ssr.jsx --outDir dist-ssr   Run: node dist-ssr/ssr.js
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '../../src/hooks/ThemeProvider';
-import { StatsRow, HabitBreakdown } from '../../src/App';
+import { StatsRow, HabitBreakdown } from '../../src/components/InsightsView';
 import { YearGrid } from '../../src/components/YearGrid';
 import { TrendLine } from '../../src/components/TrendLine';
 import { SEED_HABITS } from '../../src/utils/constants';

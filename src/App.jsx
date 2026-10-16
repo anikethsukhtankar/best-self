@@ -1,26 +1,24 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { useTheme } from './hooks/useTheme';
 import { ThemeProvider } from './hooks/ThemeProvider';
 import { AuthScreen } from './components/AuthScreen';
-import { HabitRow } from './components/HabitRow';
-import { Checkmark } from './components/Checkmark';
 import { PenroseFigure } from './components/PenroseFigure';
 import { LouverNumeral } from './components/LouverNumeral';
 import { HabitModal } from './components/HabitModal';
 import { ManageHabits } from './components/ManageHabits';
 import { TimeBlockEditor } from './components/TimeBlockEditor';
-import { YearGrid } from './components/YearGrid';
-import { TrendLine } from './components/TrendLine';
 import { StendigCalendar } from './components/StendigCalendar';
+import { HabitBlocks } from './components/HabitBlocks';
+import { TaskList } from './components/TaskList';
+import { InsightsView } from './components/InsightsView';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
 import { getHabitsForDay, getDayCompletion, isDayComplete } from './utils/habits';
-import { currentStreak, bestStreak, weekPercent, habitBreakdown } from './utils/insights';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -79,44 +77,6 @@ function ProgressBar({ completed, total, threshold, width = 96, style }) {
       <PenroseFigure completed={completed} total={total} complete={complete} width={width} color={theme.accent} />
       <span style={S.progressText}>
         {complete ? '✓' : `${completed}/${total}`}
-      </span>
-    </div>
-  );
-}
-
-// Todo Row Component
-function TodoRow({ todo, tag, onToggle, onDelete }) {
-  const { theme, S } = useTheme();
-  const [hovered, setHovered] = useState(false);
-  const checked = !!todo.completedAt;
-
-  return (
-    <div
-      style={{ ...S.habitRow, background: hovered ? theme.hover : 'transparent' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <div
-        style={{ ...S.checkbox, background: checked ? theme.accent : 'transparent' }}
-        onClick={() => onToggle(todo.id)}
-      >
-        {checked && <Checkmark color={theme.accentText} />}
-      </div>
-      <span style={{
-        ...S.habitText,
-        textDecoration: checked ? 'line-through' : 'none',
-        color: checked ? theme.textMuted : theme.text
-      }}>
-        {todo.text}
-      </span>
-      {tag && (
-        <span style={{ fontSize: 12, color: theme.textFaint, marginLeft: 16, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tag}</span>
-      )}
-      <span
-        style={{ fontSize: 14, color: theme.textFaintest, cursor: 'pointer', padding: '0 8px', opacity: hovered ? 1 : 0 }}
-        onClick={(ev) => { ev.stopPropagation(); onDelete(todo.id); }}
-      >
-        ×
       </span>
     </div>
   );
@@ -215,62 +175,6 @@ function LeftPanel({ habits, completions, selectedDate, settings }) {
           <div style={S.timelineSummaryLabel}>Completed</div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Stats Row: three thin numbers
-export function StatsRow({ habits, completions, threshold }) {
-  const { theme, S } = useTheme();
-  const stats = useMemo(() => {
-    const today = new Date();
-    const week = weekPercent(habits, completions, today);
-    return {
-      current: currentStreak(habits, completions, threshold, today),
-      best: bestStreak(habits, completions, threshold, today),
-      week: week === null ? null : Math.round(week * 100),
-    };
-  }, [habits, completions, threshold]);
-  const big = { fontSize: 'clamp(44px, 12vw, 72px)', fontWeight: 100, lineHeight: 1, color: theme.text, fontVariantNumeric: 'tabular-nums' };
-  const cells = [[stats.current, 'Day streak'], [stats.best, 'Best streak'], [stats.week === null ? '–' : `${stats.week}%`, 'This week']];
-
-  return (
-    <div style={{ ...S.statsRow, justifyContent: 'space-between', gap: 24, marginBottom: 72, flexWrap: 'nowrap' }}>
-      {cells.map(([value, label]) => (
-        <div key={label} style={{ flex: 1 }}>
-          <div style={big}>{value}</div>
-          <div style={{ ...S.statLabel, marginTop: 12 }}>{label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Habit Breakdown: worst first, so what needs attention is at the top
-export function HabitBreakdown({ habits, completions }) {
-  const { theme, S } = useTheme();
-  const rows = useMemo(() => habitBreakdown(habits, completions, 30, new Date()), [habits, completions]);
-  if (rows.length === 0) return null;
-
-  return (
-    <div style={S.breakdownSection}>
-      <div style={S.sectionLabel}>Habits · 30 days · worst first</div>
-      {rows.map(({ habit, rate, streak, scheduled }) => (
-        <div key={habit.id} style={{ padding: '14px 0', borderBottom: `1px solid ${theme.borderLight}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-            <span style={{ fontSize: 14, color: theme.text }}>{habit.text}</span>
-            <span style={{ fontSize: 13, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-              {rate === null ? '–' : `${Math.round(rate * 100)}%`}
-            </span>
-          </div>
-          <div style={{ height: 2, background: theme.border, marginTop: 8 }}>
-            <div style={{ height: '100%', width: `${Math.round((rate || 0) * 100)}%`, background: theme.accent }} />
-          </div>
-          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>
-            {scheduled === 0 ? 'not scheduled in the last 30 days' : streak > 0 ? `${streak}-day streak` : 'no current streak'}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -455,7 +359,6 @@ function Dashboard({ user, signOut, onDarkMode }) {
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [todoText, setTodoText] = useState('');
   const [navHover, setNavHover] = useState(null);
   const [editor, setEditor] = useState(null); // null | { habit } | { defaultBlock }
 
@@ -638,50 +541,14 @@ function Dashboard({ user, signOut, onDarkMode }) {
             />
 
             {/* Mobile Habits */}
-            {Object.entries(habitsByBlock).map(([block, habits]) => (
-              <div key={block} style={{ marginBottom: 32 }}>
-                <div style={S.sectionLabel}>{labels[block]}</div>
-                {habits.map(habit => (
-                  <HabitRow
-                    key={habit.id}
-                    habit={habit}
-                    checked={completions[dk]?.[habit.id] || false}
-                    onToggle={() => toggleHabit(habit.id)}
-                  />
-                ))}
-              </div>
-            ))}
+            <HabitBlocks blocks={habitsByBlock} labels={labels} done={completions[dk]} onToggle={toggleHabit} compact />
 
             {/* Mobile Todos */}
-            <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${theme.border}` }}>
-              <div style={S.sectionLabel}>Tasks</div>
-              {dayTodos.map(todo => (
-                <TodoRow key={todo.id} todo={todo} tag={todoTag(todo)} onToggle={toggleTodo} onDelete={deleteTodo} />
-              ))}
-              <input
-                type="text"
-                style={{ ...S.todoInput, fontSize: 16 }}
-                placeholder="Add a task..."
-                value={todoText}
-                onChange={ev => setTodoText(ev.target.value)}
-                onKeyDown={ev => {
-                  if (ev.key === 'Enter' && todoText.trim()) {
-                    addTodo(todoText.trim());
-                    setTodoText('');
-                  }
-                }}
-              />
-            </div>
+            <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} compact />
           </>
         ) : (
           <>
-            {Object.keys(completions).length === 0 && (
-              <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 40 }}>Insights fill in as you check things off.</p>
-            )}
-            <StatsRow habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
-            <YearGrid habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
-            <TrendLine habits={state.habits} completions={completions} />
-            <HabitBreakdown habits={state.habits} completions={completions} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
           </>
         )}
 
@@ -826,44 +693,9 @@ function Dashboard({ user, signOut, onDarkMode }) {
               threshold={state.settings.completionThreshold}
             />
 
-            {Object.entries(habitsByBlock).map(([block, habits]) => (
-              <div key={block} style={S.timeBlock}>
-                <div style={S.sectionLabel}>{labels[block]}</div>
-                {habits.map(habit => (
-                  <HabitRow
-                    key={habit.id}
-                    habit={habit}
-                    checked={completions[dk]?.[habit.id] || false}
-                    onToggle={() => toggleHabit(habit.id)}
-                    onEdit={h => setEditor({ habit: h })}
-                  />
-                ))}
-              </div>
-            ))}
+            <HabitBlocks blocks={habitsByBlock} labels={labels} done={completions[dk]} onToggle={toggleHabit} onEdit={h => setEditor({ habit: h })} />
 
-            <div style={S.todoSection}>
-              <div style={S.sectionLabel}>Tasks</div>
-              {dayTodos.map(todo => (
-                <TodoRow key={todo.id} todo={todo} tag={todoTag(todo)} onToggle={toggleTodo} onDelete={deleteTodo} />
-              ))}
-              <input
-                type="text"
-                style={S.todoInput}
-                placeholder="Add a task..."
-                value={todoText}
-                onChange={ev => setTodoText(ev.target.value)}
-                onKeyDown={ev => {
-                  if (ev.key === 'Enter' && todoText.trim()) {
-                    addTodo(todoText.trim());
-                    setTodoText('');
-                  }
-                  if (ev.key === 'Escape') {
-                    setTodoText('');
-                    ev.target.blur();
-                  }
-                }}
-              />
-            </div>
+            <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} />
 
             <ProgressBar
               completed={dayProgress.completed}
@@ -873,13 +705,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           </>
         ) : (
           <>
-            {Object.keys(completions).length === 0 && (
-              <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 40 }}>Insights fill in as you check things off.</p>
-            )}
-            <StatsRow habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
-            <YearGrid habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
-            <TrendLine habits={state.habits} completions={completions} />
-            <HabitBreakdown habits={state.habits} completions={completions} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
           </>
         )}
 
