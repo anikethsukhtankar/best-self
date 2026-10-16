@@ -33,7 +33,7 @@ export function useData(user) {
             } else {
               // Completely new - use defaults
               await setDoc(docRef, DEFAULT_STATE);
-              setState(DEFAULT_STATE);
+              setState(sanitizeData(DEFAULT_STATE));
             }
             setLastSynced(new Date());
           }
@@ -41,15 +41,15 @@ export function useData(user) {
           console.error('Error loading data:', error);
           // Fall back to local storage
           const localData = localStorage.getItem(STORAGE_KEY);
-          setState(localData ? JSON.parse(localData) : DEFAULT_STATE);
+          setState(sanitizeData(localData ? JSON.parse(localData) : DEFAULT_STATE));
         }
       } else {
         // Not signed in - use local storage
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          setState(stored ? JSON.parse(stored) : DEFAULT_STATE);
+          setState(sanitizeData(stored ? JSON.parse(stored) : DEFAULT_STATE));
         } catch {
-          setState(DEFAULT_STATE);
+          setState(sanitizeData(DEFAULT_STATE));
         }
       }
     };

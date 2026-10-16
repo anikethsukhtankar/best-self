@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Checkmark } from './Checkmark';
 
-export function HabitRow({ habit, checked, onToggle, onEdit }) {
+export function HabitRow({ habit, stage = habit, checked, onToggle, onEdit }) {
   const { theme, S } = useTheme();
   const [hovered, setHovered] = useState(false);
 
@@ -21,7 +21,7 @@ export function HabitRow({ habit, checked, onToggle, onEdit }) {
         textDecoration: checked ? 'line-through' : 'none',
         color: checked ? theme.textMuted : theme.text
       }}>
-        {habit.text}
+        {stage.text}
       </span>
       {onEdit && (
         <button
@@ -33,8 +33,8 @@ export function HabitRow({ habit, checked, onToggle, onEdit }) {
           Edit
         </button>
       )}
-      {habit.durationMinutes && (
-        <span style={S.habitDuration}>{habit.durationMinutes} min</span>
+      {stage.durationMinutes && (
+        <span style={S.habitDuration}>{stage.durationMinutes} min</span>
       )}
     </div>
   );

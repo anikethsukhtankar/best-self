@@ -18,7 +18,7 @@ import {
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
-import { getHabitsForDay, getDayCompletion, isDayComplete } from './utils/habits';
+import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, changeHabit } from './utils/habits';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -151,7 +151,7 @@ function LeftPanel({ habits, completions, selectedDate, settings }) {
                               ...(dayCompletions[habit.id] ? S.timelineHabitDone : {})
                             }}
                           >
-                            {habit.text}
+                            {stageAt(habit, dk)?.text ?? habit.text}
                           </div>
                         ))}
                       </div>
@@ -390,12 +390,16 @@ function Dashboard({ user, signOut, onDarkMode }) {
   const addHabit = useCallback(fields => {
     const inBlock = state.habits.filter(h => h.timeBlock === fields.timeBlock);
     const sortOrder = inBlock.length ? Math.max(...inBlock.map(h => h.sortOrder ?? 0)) + 1 : 0;
-    save({ ...state, habits: [...state.habits, { id: generateId(), createdAt: new Date().toISOString(), sortOrder, ...fields }] });
+    const { text, durationMinutes, recurrence } = fields;
+    const habit = { id: generateId(), createdAt: new Date().toISOString(), sortOrder, ...fields, stages: [{ from: formatDateKey(new Date()), text, durationMinutes, recurrence }] };
+    save({ ...state, habits: [...state.habits, habit] });
     setEditor(null);
   }, [state, save]);
 
+  // Changes take effect from today; the days before keep the habit they had (see changeHabit).
   const updateHabit = useCallback((id, fields) => {
-    save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, ...fields } : h) });
+    const todayKey = formatDateKey(new Date());
+    save({ ...state, habits: state.habits.map(h => h.id === id ? changeHabit(h, fields, todayKey) : h) });
     setEditor(null);
   }, [state, save]);
 
@@ -541,7 +545,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
             />
 
             {/* Mobile Habits */}
-            <HabitBlocks blocks={habitsByBlock} labels={labels} done={completions[dk]} onToggle={toggleHabit} compact />
+            <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} compact />
 
             {/* Mobile Todos */}
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} compact />
@@ -693,7 +697,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
               threshold={state.settings.completionThreshold}
             />
 
-            <HabitBlocks blocks={habitsByBlock} labels={labels} done={completions[dk]} onToggle={toggleHabit} onEdit={h => setEditor({ habit: h })} />
+            <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} onEdit={h => setEditor({ habit: h })} />
 
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} />
 
