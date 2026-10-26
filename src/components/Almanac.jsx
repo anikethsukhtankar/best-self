@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useWidth } from '../hooks/useWidth';
+import { useDay } from '../hooks/useDay';
 import { MONTH_NAMES } from '../utils/constants';
 import { parseDateKey, formatDate } from '../utils/date';
 import { recordYears, recordStart, monthPlate, chapterFor, yearEvents } from '../utils/almanac';
@@ -67,7 +68,8 @@ function ChapterLine({ chapter, theme, onChange }) {
 }
 
 // Insights: the year as a printed plate, with its chapters, the steps taken and the rests.
-export function Almanac({ habits, completions, threshold, chapters, onChapter, today = new Date() }) {
+export function Almanac({ habits, completions, threshold, chapters, onChapter, today: now }) {
+  const today = useDay(now);
   const { theme, S } = useTheme();
   const years = useMemo(() => recordYears(habits, completions, today), [habits, completions, today]);
   const [year, setYear] = useState(today.getFullYear());

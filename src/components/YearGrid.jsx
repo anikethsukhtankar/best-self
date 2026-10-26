@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useDay } from '../hooks/useDay';
 import { formatDate } from '../utils/date';
 import { yearGrid } from '../utils/insights';
 
@@ -8,7 +9,8 @@ const GAP = 2;
 const DAY_LABELS = ['', 'M', '', 'W', '', 'F', ''];
 
 // Twelve months of days, Sunday to Saturday, in four inks: none, below threshold, partial, met.
-export function YearGrid({ habits, completions, threshold, today = new Date() }) {
+export function YearGrid({ habits, completions, threshold, today: now }) {
+  const today = useDay(now);
   const { theme, S } = useTheme();
   const [tip, setTip] = useState(null);
   const scroller = useRef(null);

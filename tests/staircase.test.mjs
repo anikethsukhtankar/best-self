@@ -37,3 +37,29 @@ test('years of history turn into months, and a habit with nothing yet is new', (
   assert.equal(s.columns[0].start, '2023-01-01');
   assert.equal(s.rooted, 'new');
 });
+
+test('roots carry across steps: a step up never uproots, a bad month never uproots', async () => {
+  const { rootFrom } = await import('../src/utils/staircase.js');
+  const day = (i, kept, scheduled = true) => ({ dateKey: `d${i}`, scheduled, kept: scheduled && kept });
+  // 66 days in force at 82%: second nature on day 66, and it stays through 40 missed days after.
+  const days = Array.from({ length: 66 }, (_, i) => day(i, i % 6 !== 0));
+  assert.deepEqual(rootFrom(days), { word: 'second nature', since: 'd65' });
+  assert.equal(rootFrom([...days, ...Array.from({ length: 40 }, (_, i) => day(66 + i, false))]).word, 'second nature');
+  assert.equal(rootFrom(days.slice(0, 30)).word, 'taking root');
+  assert.equal(rootFrom(days.slice(0, 10)).word, 'new');
+  // A weekly habit roots on its own rhythm: eight of nine Sundays in the trailing window.
+  const weekly = Array.from({ length: 66 }, (_, i) => day(i, i !== 7, i % 7 === 0));
+  assert.equal(rootFrom(weekly).word, 'second nature');
+
+  // Through the staircase: a long-held habit that stepped up last week is still second nature.
+  const today = new Date(2026, 9, 26, 12);
+  const h = { id: 'm', text: 'Meditate 12 min', stages: [
+    { from: '2026-05-01', text: 'Meditate 10 min', durationMinutes: 10, recurrence: { type: 'daily' } },
+    { from: '2026-10-20', text: 'Meditate 12 min', durationMinutes: 12, recurrence: { type: 'daily' } },
+  ] };
+  const c = {};
+  for (let d = new Date(2026, 4, 1); d <= today; d.setDate(d.getDate() + 1)) c[formatDateKey(d)] = { m: true };
+  const s = staircase(h, c, 0.8, today);
+  assert.equal(s.rooted, 'second nature');
+  assert.equal(s.rootedSince, '2026-07-05');
+});

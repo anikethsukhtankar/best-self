@@ -3,7 +3,6 @@
 // step is a landing, not a drop: the path only climbs or walks on. Pure, no React.
 import { formatDateKey, addDays, getWeekStart, parseDateKey } from './date.js';
 import { stagesOf, isHabitScheduledForDay } from './habits.js';
-import { heldDays } from './growth.js';
 
 const MIN_WEEKS = 8;
 
@@ -26,6 +25,31 @@ export const stageLevels = (stages) => {
     if (!st.rest) prev = st;
   }
   return levels;
+};
+
+// How rooted a habit is, from its days in force (rest days are not in force), oldest first, each
+// { dateKey, scheduled, kept }. It becomes second nature the first day the trailing 66 days in force
+// held at 80% or more with at least eight times due (66 days is the median time to automaticity
+// found by Lally et al., 2010), and stays so: a step up or a bad month never uproots what was
+// built. Taking root once three weeks in force hold a week's worth of practice; new before that.
+const WINDOW = 66;
+export const rootFrom = (inForce) => {
+  let scheduled = 0;
+  let kept = 0;
+  let ever = 0;
+  for (let i = 0; i < inForce.length; i++) {
+    const d = inForce[i];
+    scheduled += d.scheduled ? 1 : 0;
+    kept += d.kept ? 1 : 0;
+    ever += d.kept ? 1 : 0;
+    if (i >= WINDOW) {
+      const out = inForce[i - WINDOW];
+      scheduled -= out.scheduled ? 1 : 0;
+      kept -= out.kept ? 1 : 0;
+    }
+    if (i >= WINDOW - 1 && scheduled >= 8 && kept / scheduled >= 0.8) return { word: 'second nature', since: d.dateKey };
+  }
+  return { word: inForce.length >= 21 && ever >= 7 ? 'taking root' : 'new', since: null };
 };
 
 // Where the habit's record begins: its first stage, or its first check if the stage has always
@@ -57,6 +81,7 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
   const monthly = weeks > 104;
 
   const columns = [];
+  const inForce = [];
   let cursor = monthly ? new Date(start.getFullYear(), start.getMonth(), 1) : start;
   const archivedKey = habit.archivedAt ? formatDateKey(habit.archivedAt) : null;
   while (cursor <= today) {
@@ -72,10 +97,13 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
       if (idx < 0) continue;
       lastIdx = idx;
       if (stages[idx].rest && !(stages[idx].until && stages[idx].until <= dk)) { rest = true; continue; }
-      if (!isHabitScheduledForDay(habit, d)) continue;
-      if (dk === todayKey && !completions[dk]?.[habit.id]) continue; // today is still open
+      const due = isHabitScheduledForDay(habit, d);
+      const kept = Boolean(completions[dk]?.[habit.id]);
+      if (dk === todayKey && !kept) continue; // today is still open
+      inForce.push({ dateKey: dk, scheduled: due, kept: due && kept });
+      if (!due) continue;
       scheduled++;
-      if (completions[dk]?.[habit.id]) done++;
+      if (kept) done++;
     }
     const rate = scheduled ? done / scheduled : null;
     columns.push({
@@ -100,9 +128,6 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
 
   let times = 0;
   for (const day of Object.values(completions)) if (day?.[habit.id]) times++;
-  const held = heldDays(habit, completions, today);
-  // Sixty-six days is the median time for a habit to become automatic (Lally et al., 2010).
-  const rooted = held >= 66 ? 'second nature' : held >= 21 ? 'taking root' : times >= 21 ? 'beginning again' : 'new';
-
-  return { columns, treads, monthly, maxLevel: Math.max(0, ...levels), times, held, rooted };
+  const root = rootFrom(inForce);
+  return { columns, treads, monthly, maxLevel: Math.max(0, ...levels), times, rooted: root.word, rootedSince: root.since };
 };

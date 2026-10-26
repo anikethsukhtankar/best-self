@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useDay } from '../hooks/useDay';
 import { formatDate } from '../utils/date';
 import { rollingAverage } from '../utils/insights';
 
@@ -35,7 +36,8 @@ function smoothPath(points) {
 }
 
 // Rolling average of daily completion over the last 90 days. No axes, no grid: just the line.
-export function TrendLine({ habits, completions, today = new Date() }) {
+export function TrendLine({ habits, completions, today: now }) {
+  const today = useDay(now);
   const { theme, S } = useTheme();
   const [window, setWindow] = useState(7);
   const [hover, setHover] = useState(null);

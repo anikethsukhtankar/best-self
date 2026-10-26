@@ -1,10 +1,11 @@
 import { useId, useMemo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useWidth } from '../hooks/useWidth';
+import { useDay } from '../hooks/useDay';
 import { staircase } from '../utils/staircase';
 import { habitBreakdown } from '../utils/insights';
 import { formatDateKey, parseDateKey, formatDate } from '../utils/date';
-import { isResting } from '../utils/habits';
+import { isResting, stageAt } from '../utils/habits';
 import { TIME_BLOCKS } from '../utils/constants';
 
 const BASE = 16; // the lowest tread sits this far above the ground line
@@ -13,16 +14,15 @@ const HEADROOM = 9; // room above the highest tread for the traveller
 const weekLabel = (start, monthly) => formatDate(parseDateKey(start), monthly ? 'monthYear' : 'monthDay');
 
 // One habit's life: weekly columns of stone under a tread that rises with every step up.
-function Stair({ habit, completions, threshold, today, onHover }) {
+export function Stair({ habit, s, onHover, height }) {
   const { theme } = useTheme();
   const uid = useId().replace(/:/g, '');
   const [ref, width] = useWidth(600);
-  const s = useMemo(() => staircase(habit, completions, threshold, today), [habit, completions, threshold, today]);
   const n = s.columns.length;
   const col = width / n;
   const gutter = col >= 5 ? 1 : 0;
   // Each step up rises 8px; a habit with many steps compresses so the figure stays under 64px.
-  const rise = s.maxLevel ? Math.min(8, (64 - BASE - HEADROOM) / s.maxLevel) : 0;
+  const rise = s.maxLevel ? Math.min(height ? 16 : 8, ((height || 64) - BASE - HEADROOM) / s.maxLevel) : 0;
   const H = BASE + HEADROOM + s.maxLevel * rise;
   const y = (level) => H - BASE - level * rise;
   const hatch = `st-${uid}`;
@@ -75,35 +75,39 @@ function Stair({ habit, completions, threshold, today, onHover }) {
 }
 
 // Insights: every active habit as the staircase it has climbed, in the order of the day.
-export function HabitStairs({ habits, completions, threshold, blockOrder = TIME_BLOCKS, today = new Date() }) {
+export function HabitStairs({ habits, completions, threshold, blockOrder = TIME_BLOCKS, today: now, onOpen }) {
   const { theme, S } = useTheme();
   const [hover, setHover] = useState({});
+  const today = useDay(now);
   const todayKey = formatDateKey(today);
   const rates = useMemo(() => Object.fromEntries(habitBreakdown(habits, completions, 30, today).map((r) => [r.habit.id, r.rate])), [habits, completions, today]);
-  const rows = habits
+  const rows = useMemo(() => habits
     .filter((h) => !h.archivedAt)
-    .sort((a, b) => blockOrder.indexOf(a.timeBlock) - blockOrder.indexOf(b.timeBlock) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    .sort((a, b) => blockOrder.indexOf(a.timeBlock) - blockOrder.indexOf(b.timeBlock) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((habit) => ({ habit, s: staircase(habit, completions, threshold, today), stage: stageAt(habit, todayKey) })),
+  [habits, completions, threshold, today, todayKey, blockOrder]);
   if (rows.length === 0) return null;
 
   return (
     <div style={S.breakdownSection}>
       <div style={S.sectionLabel}>Habits, as they grew</div>
-      {rows.map((habit) => {
-        const s = staircase(habit, completions, threshold, today);
+      {rows.map(({ habit, s, stage }) => {
         const resting = isResting(habit, todayKey);
         const rate = rates[habit.id];
         return (
           <div key={habit.id} style={{ padding: '18px 0 20px', borderBottom: `1px solid ${theme.borderLight}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, marginBottom: 12, minHeight: 21 }}>
               <span style={{ fontSize: 14, color: theme.text, minWidth: 0 }}>
-                {habit.text}
+                {onOpen ? (
+                  <button style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }} onClick={() => onOpen(habit.id)}>{stage?.text ?? habit.text}</button>
+                ) : (stage?.text ?? habit.text)}
                 <span style={{ fontSize: 12, color: theme.textMuted, marginLeft: 10 }}>{resting ? 'resting' : s.rooted}</span>
               </span>
               <span style={{ fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right' }}>
                 {hover[habit.id] || `${s.times} ${s.times === 1 ? 'time' : 'times'}${rate === null || rate === undefined ? '' : ` · ${Math.round(rate * 100)}% lately`}`}
               </span>
             </div>
-            <Stair habit={habit} completions={completions} threshold={threshold} today={today} onHover={(text) => setHover((h) => ({ ...h, [habit.id]: text }))} />
+            <Stair habit={habit} s={s} onHover={(text) => setHover((h) => (h[habit.id] === text ? h : { ...h, [habit.id]: text }))} />
           </div>
         );
       })}
