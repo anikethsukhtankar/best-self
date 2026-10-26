@@ -109,3 +109,32 @@ test('a rest is weather: holding reaches back across it, a change of terms start
   const old = habit({ stages: [st('2023-09-01')] });
   assert.equal(heldFor(heldDays(old, record(1200), today)), 'three years');
 });
+
+test('coming back after a long absence is a new beginning; a rename after a short rest is not', async () => {
+  const { heldDays, termsSince } = await import('../src/utils/growth.js');
+  const { restoreHabit, changeHabit, restHabit, resumeHabit } = await import('../src/utils/habits.js');
+  const st = (from, extra = {}) => ({ from, text: 'Meditate 10 min', durationMinutes: 10, recurrence: { type: 'daily' }, ...extra });
+  const c = {};
+  for (let d = new Date(2026, 0, 1); d <= new Date(2026, 4, 31); d.setDate(d.getDate() + 1)) c[formatDateKey(d)] = { m: true };
+  c['2026-10-26'] = { m: true };
+  // Archived for five months and restored today: held for nothing yet, and no offer.
+  const restored = restoreHabit(habit({ archivedAt: '2026-06-01T12:00:00.000Z', stages: [st('2026-01-01')] }), '2026-10-26');
+  assert.equal(termsSince(restored, '2026-10-26'), '2026-10-26');
+  assert.equal(heldDays(restored, c, today), 0);
+  assert.equal(growthOffer(restored, c, today), null);
+  // A week's rest, then a new name: still held since September.
+  const kept = record(55, Array.from({ length: 7 }, (_, i) => 19 + i));
+  const back = resumeHabit(restHabit(habit(), '2026-10-01'), '2026-10-08');
+  const renamedBack = changeHabit(back, { text: 'Meditate, 10 min' }, '2026-10-20');
+  assert.equal(termsSince(renamedBack, '2026-10-26'), '2026-09-01');
+  assert.equal(heldDays(renamedBack, kept, today), 55);
+});
+
+test('next steps: written minutes come along, minutes in a name change as whole words', () => {
+  const held = record(30);
+  assert.deepEqual(growthOffer(habit({ next: 'Meditate 15 min' }), held, today).proposal.durationMinutes, 15);
+  const named = (text, minutes) => habit({ text, durationMinutes: minutes, stages: [{ from: '2026-09-01', text, durationMinutes: minutes, recurrence: { type: 'daily' } }] });
+  assert.equal(growthOffer(named('Plank 1 minute', 1), held, today).proposal.text, 'Plank 2 minutes');
+  assert.equal(growthOffer(named('Walk 15 min, stretch 5 min', 5), held, today).proposal.text, 'Walk 15 min, stretch 7 min');
+  assert.deepEqual([351, 364, 547, 548, 730, 1095].map(heldFor), ['a year', 'a year', 'a year', 'two years', 'two years', 'three years']);
+});

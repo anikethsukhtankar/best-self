@@ -1,7 +1,7 @@
 // When a habit is ready to grow, or feels heavy, and what its next step would be. Pure, no React.
 // Nothing here changes a habit: it only offers. The person always chooses, and the past stays put.
 import { formatDateKey, parseDateKey, addDays } from './date.js';
-import { stageAt, stagesOf, isHabitScheduledForDay } from './habits.js';
+import { stageAt, stagesOf, settled, sameTerms, isHabitScheduledForDay } from './habits.js';
 
 // Round minutes to walk up and down. A step is the next rung at least 10% longer: 10 → 12,
 // 20 → 25, 45 → 50. Small enough to feel easy, big enough to be growth. Two hours is the top:
@@ -10,24 +10,39 @@ export const LADDER = [1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60
 export const longer = (m) => LADDER.find((v) => v >= m * 1.1) ?? (m < 120 ? 120 : null);
 export const lighter = (m) => [...LADDER].reverse().find((v) => v <= m * 0.67) ?? 1;
 
-// '10 min' in the name follows the minutes, so 'Meditate 10 min' becomes 'Meditate 12 min'.
-const renamed = (text, from, to) => (from && text.includes(`${from} min`) ? text.replace(`${from} min`, `${to} min`) : text);
+// '10 min' in the name follows the minutes, so 'Meditate 10 min' becomes 'Meditate 12 min' and
+// 'Plank 1 minute' becomes 'Plank 2 minutes'. Only a whole number matches: '15 min' is not '5 min'.
+const renamed = (text, from, to) => (from
+  ? text.replace(new RegExp(`(^|\\D)${from} min(ute)?(s)?\\b`), (_, pre, unit, s) => `${pre}${to} min${unit ? (to === 1 ? 'ute' : 'utes') : (s ?? '')}`)
+  : text);
 
 const daysPerWeek = (recurrence) => (recurrence.type === 'daily' ? 7 : recurrence.days.length);
-const sameTerms = (a, b) => a.text === b.text && (a.durationMinutes ?? null) === (b.durationMinutes ?? null) && JSON.stringify(a.recurrence) === JSON.stringify(b.recurrence);
 
-// When the habit's present terms began: the earliest stage with the same terms, reaching back across
-// rests (a rest is weather, not a new beginning), and stopping at the last change of terms.
+// A rest of up to a month (the longest of the rest choices) is weather; a longer absence, or an
+// archive brought back, is a new beginning.
+const LONG_REST = 31;
+
+// When the habit's present terms began: the earliest stage asking the same, reaching back across
+// short rests, and stopping at the last change of terms or a long absence. A new name on coming
+// back from a rest is a rename, not a change of terms.
 export const termsSince = (habit, todayKey) => {
-  const now = stageAt(habit, todayKey);
+  const stages = settled(habit, todayKey).filter((st) => st.from <= todayKey);
+  const now = stages[stages.length - 1];
   if (!now || now.rest) return null;
-  const stages = stagesOf(habit).filter((st) => st.from <= todayKey);
   let since = now.from;
-  for (let i = stages.length - 1; i >= 0; i--) {
+  let cur = now;
+  let crossed = false;
+  for (let i = stages.length - 2; i >= 0; i--) {
     const st = stages[i];
-    if (st.rest) continue;
-    if (!sameTerms(st, now)) break;
+    if (st.rest) {
+      if (ageInDays(st.from, stages[i + 1].from) > LONG_REST) break;
+      crossed = true;
+      continue;
+    }
+    if (!sameTerms(st, cur, { words: !crossed })) break;
     since = st.from;
+    cur = st;
+    crossed = false;
   }
   return since;
 };
@@ -92,7 +107,11 @@ export const growthOffer = (habit, completions, today = new Date()) => {
 
   if (age >= 21 && recent.length >= n && done >= n - 1) {
     let proposal = null;
-    if (habit.next) proposal = { text: habit.next, durationMinutes: stage.durationMinutes, recurrence: stage.recurrence };
+    if (habit.next) {
+      // A written next step that names its minutes ('Meditate 15 min') brings them with it.
+      const named = /(\d+) min/.exec(habit.next);
+      proposal = { text: habit.next, durationMinutes: named ? Number(named[1]) : stage.durationMinutes, recurrence: stage.recurrence };
+    }
     else if (stage.durationMinutes && longer(stage.durationMinutes)) {
       const minutes = longer(stage.durationMinutes);
       proposal = { text: renamed(stage.text, stage.durationMinutes, minutes), durationMinutes: minutes, recurrence: stage.recurrence };
@@ -142,7 +161,7 @@ export const heldFor = (days) => {
   if (days < 7) return 'a few days';
   if (days < 14) return 'a week';
   if (days < 56) return `${word(Math.floor(days / 7))} weeks`;
-  if (days < 365) { const m = Math.round(days / 30.44); return m <= 1 ? 'a month' : `${word(m)} months`; }
-  const y = Math.max(1, Math.floor(days / 365.25));
+  if (days < 365) { const m = Math.round(days / 30.44); return m <= 1 ? 'a month' : m >= 12 ? 'a year' : `${word(m)} months`; }
+  const y = Math.max(1, Math.round(days / 365.25));
   return y === 1 ? 'a year' : `${word(y)} years`;
 };
