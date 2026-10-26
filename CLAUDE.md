@@ -32,7 +32,10 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
 ## Where things live
 
 - `src/App.jsx` screens and wiring; components in `src/components/`; pure logic in `src/utils/`
-  (`insights.js`, `habits.js`, `todos.js`, `penrose.js`, `calendar.js` are tested, keep them React-free).
+  (`habits.js`, `growth.js`, `staircase.js`, `almanac.js`, `turn.js`, `calendar.js`, `insights.js`, `todos.js`,
+  `penrose.js`, `sample.js` are tested; keep them React-free).
+- Habits are ledgers of dated stages (`habits.js` stageAt / changeHabit / restHabit). Every scheduling path goes
+  through `isHabitScheduledForDay`, which is stage- and archive-date-aware. Never rewrite past stages.
 - The month calendar is one SVG (`StendigCalendar.jsx`) drawn from `calendar.js`, which follows Chrome's
   pixel snapping so it renders identically to the CSS grid it replaced.
 - Seed habits in `src/utils/constants.js`. Persistence in `src/hooks/useData.js`.
@@ -45,6 +48,15 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
 - Small steps, one feature per commit, conventional-commit subjects (`feat(today): …`, `style: …`).
 - No `<form>` tags; onClick/onChange/onKeyDown handlers only. Escape closes every modal.
 - Never strip characters from people's text; React escapes on render.
+
+## Handoff (as of 2026-10-26)
+
+- Branch `claude/magical-lovelace-yf65vq` (not yet merged) adds the growth release: the SVG calendar and The Turn,
+  dated stages and rest, growth offers on Today and in the editor, per-habit staircases and the almanac in Insights,
+  and the welcome with an in-memory sample year. Design came from a five-lens design panel; the ideas not built yet
+  are on the README roadmap (anchors, one line a day, seasons).
+- Verification used headless Chromium at real device scales (`--force-device-scale-factor`, the headless_shell build
+  allows a 375px window); Playwright's emulated deviceScaleFactor lays out in CSS pixels and is not like a retina screen.
 
 ## Handoff (as of 2026-10-07)
 
