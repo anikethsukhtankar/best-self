@@ -1,6 +1,6 @@
 // Best Self service worker: app shell cached on install, everything else stale-while-revalidate.
 // Bump VERSION to drop old caches after a breaking change.
-const VERSION = 'best-self-v1';
+const VERSION = 'best-self-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

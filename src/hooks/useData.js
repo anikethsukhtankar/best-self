@@ -155,7 +155,7 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     const data = {
       ...state,
       exportedAt: new Date().toISOString(),
-      version: '2.0'
+      version: '3.0'
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

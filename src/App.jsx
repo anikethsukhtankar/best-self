@@ -89,7 +89,7 @@ function ProgressBar({ completed, total, threshold, width = 96, style }) {
 function SampleBanner({ onLeave }) {
   const { theme } = useTheme();
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 150, background: theme.bg, borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 24, padding: '10px 16px', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.textMuted, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 90, background: theme.bg, borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 24, padding: '10px 16px', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.textMuted, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
       <span>A sample year, not saved</span>
       <button style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', color: theme.text, textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer' }} onClick={onLeave}>Leave</button>
     </div>
