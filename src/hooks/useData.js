@@ -72,6 +72,17 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     loadData();
   }, [user, sample]);
 
+  // Another tab on this device saved: take its state, so two open tabs never overwrite each other.
+  useEffect(() => {
+    if (sample || (user && isFirebaseConfigured)) return undefined;
+    const onStorage = (ev) => {
+      if (ev.key !== STORAGE_KEY || !ev.newValue) return;
+      try { setState(sanitizeData(JSON.parse(ev.newValue))); } catch { /* a half-written value: the next save wins */ }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [user, sample]);
+
   // Subscribe to real-time updates when signed in
   useEffect(() => {
     if (sample || !user || !isFirebaseConfigured) return undefined;

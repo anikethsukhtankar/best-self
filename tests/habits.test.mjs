@@ -66,7 +66,7 @@ test('stages: migration is idempotent and begins at the first check if that came
   assert.equal(once.stages[0].from, '2026-09-02');
   assert.deepEqual(migrateHabit(once, {}), once);
   // Broken stages are dropped, duplicates on one day keep the later entry, and fields mirror the last stage.
-  const messy = migrateHabit({ id: 'm', text: 'm', recurrence: { type: 'daily' }, stages: [{ from: 'nope' }, { from: '2026-01-02', text: 'b', recurrence: { type: 'daily' } }, { from: '2026-01-01', text: 'a', recurrence: { type: 'daily' } }, { from: '2026-01-02', text: 'c', recurrence: { type: 'daily' } }] });
+  const messy = migrateHabit({ id: 'm', text: 'c', recurrence: { type: 'daily' }, stages: [{ from: 'nope' }, { from: '2026-01-02', text: 'b', recurrence: { type: 'daily' } }, { from: '2026-01-01', text: 'a', recurrence: { type: 'daily' } }, { from: '2026-01-02', text: 'c', recurrence: { type: 'daily' } }] });
   assert.deepEqual(messy.stages.map((s) => s.text), ['a', 'c']);
   assert.equal(messy.text, 'c');
   // No date to begin from: it has always been there, as before.
@@ -115,4 +115,32 @@ test('a step always starts a new stage, even when only the words grow', async ()
   assert.equal(read.growth, undefined);
   assert.equal(changeHabit(read, { text: 'Read 15 pages' }, '2026-10-27').stages.length, 1);
   assert.equal(changeHabit(read, { text: 'Read 15 pages' }, '2026-10-27', { step: true }).stages.length, 2);
+});
+
+test('restoring an archived habit keeps the archived days out of the record', async () => {
+  const { restoreHabit, migrateHabit, getDayCompletion } = await import('../src/utils/habits.js');
+  const h = migrateHabit({ id: 'h', text: 'h', recurrence: { type: 'daily' }, createdAt: '2026-09-01T08:00:00.000Z' });
+  const other = migrateHabit({ id: 'o', text: 'o', recurrence: { type: 'daily' }, createdAt: '2026-09-01T08:00:00.000Z' });
+  const archived = { ...h, archivedAt: '2026-09-10T12:00:00.000Z' };
+  const back = restoreHabit(archived, '2026-10-01');
+  assert.equal(back.archivedAt, undefined);
+  // A day while it was archived: only the other habit was due, and it was kept.
+  assert.deepEqual(getDayCompletion([back, other], { '2026-09-20': { o: true } }, new Date(2026, 8, 20)), { completed: 1, total: 1, percentage: 1 });
+  // Before the archive and from today it is due again.
+  assert.equal(getDayCompletion([back, other], {}, new Date(2026, 8, 5)).total, 2);
+  assert.equal(getDayCompletion([back, other], {}, new Date(2026, 9, 1)).total, 2);
+  // Archived and restored the same day: nothing to rest.
+  assert.deepEqual(restoreHabit({ ...h, archivedAt: '2026-10-01T09:00:00.000Z' }, '2026-10-01').stages, h.stages);
+});
+
+test('an edit made by an older build (fields only) is kept, never thrown away', async () => {
+  const { migrateHabit } = await import('../src/utils/habits.js');
+  const h = migrateHabit({ id: 'h', text: 'Run 20 min', durationMinutes: 20, recurrence: { type: 'daily' }, createdAt: '2026-09-01T08:00:00.000Z' });
+  // The old build renamed it: the latest stage takes the new name.
+  assert.equal(migrateHabit({ ...h, text: 'Run, 20 min' }, {}, '2026-10-26').stages.at(-1).text, 'Run, 20 min');
+  // The old build changed its minutes: a stage from today, the days before untouched.
+  const grown = migrateHabit({ ...h, text: 'Run 25 min', durationMinutes: 25 }, {}, '2026-10-26');
+  assert.deepEqual(grown.stages.map((s) => [s.from, s.durationMinutes]), [['2026-09-01', 20], ['2026-10-26', 25]]);
+  // Unchanged data, a pending step for tomorrow, and a rest are all left alone.
+  assert.deepEqual(migrateHabit(h, {}, '2026-10-26'), h);
 });

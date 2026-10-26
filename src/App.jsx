@@ -21,7 +21,7 @@ import {
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
-import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, stagesOf, changeHabit, restHabit, resumeHabit, restUntil } from './utils/habits';
+import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, stagesOf, changeHabit, restHabit, resumeHabit, restUntil, restoreHabit } from './utils/habits';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -198,6 +198,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
   const { theme, S } = useTheme();
   const [threshold, setThreshold] = useState(settings.completionThreshold);
   const [darkMode, setDarkMode] = useState(settings.darkMode || false);
+  const [offerSteps, setOfferSteps] = useState(settings.offerSteps !== false);
   const [importStatus, setImportStatus] = useState(null);
   const [blocks, setBlocks] = useState({
     labels: { ...TIME_BLOCK_LABELS, ...(settings.timeBlockLabels || {}) },
@@ -284,6 +285,24 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
         </div>
 
         <div style={S.settingsSection}>
+          <label style={S.modalLabel}>Growth</label>
+          <div style={S.darkModeToggle}>
+            <span style={{ fontSize: 14, color: theme.text }}>Offer a next step on Today</span>
+            <div
+              role="switch"
+              aria-checked={offerSteps}
+              tabIndex={0}
+              style={{ ...S.darkModeSwitch, ...(offerSteps ? S.darkModeSwitchActive : {}) }}
+              onClick={() => setOfferSteps(!offerSteps)}
+              onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOfferSteps(!offerSteps); } }}
+            >
+              <div style={{ ...S.darkModeSwitchKnob, ...(offerSteps ? S.darkModeSwitchKnobActive : {}) }} />
+            </div>
+          </div>
+          <p style={{ ...S.settingsNote, marginTop: 4 }}>Once a day is done, a habit that has held is offered its next step. Off, they are still offered in each habit's editor.</p>
+        </div>
+
+        <div style={S.settingsSection}>
           <label style={S.modalLabel}>Completion Threshold</label>
           <div style={S.sliderContainer}>
             <input
@@ -367,7 +386,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
           style={S.modalButton}
           onClick={() => {
             const timeBlockLabels = Object.fromEntries(TIME_BLOCKS.map(b => [b, (blocks.labels[b] || '').trim() || TIME_BLOCK_LABELS[b]]));
-            onSave({ ...settings, completionThreshold: threshold, darkMode, timeBlockLabels, timeBlockOrder: blocks.order });
+            onSave({ ...settings, completionThreshold: threshold, darkMode, offerSteps, timeBlockLabels, timeBlockOrder: blocks.order });
             onClose();
           }}
         >
@@ -462,10 +481,12 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
     }) });
   }, [state, save]);
 
-  // "Not yet" asks again in four weeks; "keep as it is" for a heavy habit in two.
-  const snoozeGrowth = useCallback((id, days = 28) => {
+  // "Not yet" asks that habit again in four weeks; "keep as it is" for a heavy habit in two. An
+  // answer on Today also keeps Today quiet for a week, so offers never come one after another.
+  const snoozeGrowth = useCallback((id, days = 28, { fromToday = false } = {}) => {
     const until = formatDateKey(addDays(new Date(), days));
-    save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, growth: { ...(h.growth || {}), snoozeUntil: until } } : h) });
+    const settings = fromToday ? { ...state.settings, stepsQuietUntil: formatDateKey(addDays(new Date(), 7)) } : state.settings;
+    save({ ...state, settings, habits: state.habits.map(h => h.id === id ? { ...h, growth: { ...(h.growth || {}), snoozeUntil: until } } : h) });
   }, [state, save]);
 
   // A month's chapter in the person's own words; an empty line gives the month its own line back.
@@ -476,13 +497,9 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
     save({ ...state, chapters });
   }, [state, save]);
 
-  const restoreHabit = useCallback(id => {
-    save({ ...state, habits: state.habits.map(h => {
-      if (h.id !== id) return h;
-      const copy = { ...h };
-      delete copy.archivedAt;
-      return copy;
-    }) });
+  const restoreHabitFor = useCallback(id => {
+    const todayKey = formatDateKey(new Date());
+    save({ ...state, habits: state.habits.map(h => h.id === id ? restoreHabit(h, todayKey) : h) });
   }, [state, save]);
 
   const closeEditor = useCallback(() => setEditor(null), []);
@@ -508,8 +525,9 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
   const labels = state.settings?.timeBlockLabels || TIME_BLOCK_LABELS;
   // Growth is offered on Today only, and only after the day is done.
   const tomorrowKey = formatDateKey(addDays(today, 1));
-  const offer = isToday && isDayCompleted ? todaysOffer(state.habits, completions, today) : null;
-  const pendingStep = isToday && isDayCompleted && !offer
+  const offersOn = state.settings?.offerSteps !== false;
+  const offer = offersOn && isToday && isDayCompleted ? todaysOffer(state.habits, completions, today, { quietUntil: state.settings?.stepsQuietUntil }) : null;
+  const pendingStep = offersOn && isToday && isDayCompleted && !offer
     ? state.habits.map(h => stagesOf(h)).map(st => st[st.length - 1]).find(st => st.from === tomorrowKey && !st.rest) || null
     : null;
 
@@ -564,7 +582,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             onNew={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })}
             onEdit={habit => setEditor({ habit })}
             onArchive={archiveHabit}
-            onRestore={restoreHabit}
+            onRestore={restoreHabitFor}
             onResume={resumeHabitFor}
           />
         ) : tab === 'today' ? (
@@ -623,7 +641,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
 
             {/* Mobile Habits */}
             <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} compact />
-            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={snoozeGrowth} compact />
+            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={id => snoozeGrowth(id, 28, { fromToday: true })} compact />
 
             {/* Mobile Todos */}
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} compact />
@@ -731,7 +749,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             onNew={() => setEditor({ defaultBlock: TIME_BLOCKS[0] })}
             onEdit={habit => setEditor({ habit })}
             onArchive={archiveHabit}
-            onRestore={restoreHabit}
+            onRestore={restoreHabitFor}
             onResume={resumeHabitFor}
           />
         ) : tab === 'today' ? (
@@ -787,7 +805,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             />
 
             <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} onEdit={h => setEditor({ habit: h })} />
-            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={snoozeGrowth} />
+            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={id => snoozeGrowth(id, 28, { fromToday: true })} />
 
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} />
 

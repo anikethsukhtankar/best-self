@@ -1,5 +1,5 @@
 import { useTheme } from '../hooks/useTheme';
-import { describeRecurrence, isResting, stagesOf } from '../utils/habits';
+import { describeRecurrence, isResting, stagesOf, stageAt } from '../utils/habits';
 import { formatDateKey } from '../utils/date';
 import { shortDate } from '../utils/todos';
 
@@ -30,18 +30,22 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
         return (
           <div key={block} style={S.manageBlockSection}>
             <div style={S.sectionLabel}>{labels[block] || block}</div>
-            {rows.map((h) => (
+            {rows.map((h) => {
+              // A step set for tomorrow shows from tomorrow; today the habit is as it is today.
+              const now = stageAt(h, todayKey) || h;
+              return (
               <div key={h.id} style={S.manageHabitRow}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={S.manageHabitText}>{h.text}</div>
+                  <div style={S.manageHabitText}>{now.text}</div>
                   <div style={{ ...S.manageHabitMeta, marginLeft: 0, marginTop: 2, fontSize: 12 }}>
-                    {describeRecurrence(h)}{h.durationMinutes ? ` · ${h.durationMinutes} min` : ''}
+                    {describeRecurrence(now)}{now.durationMinutes ? ` · ${now.durationMinutes} min` : ''}{now !== h && h.text !== now.text ? ` · tomorrow: ${h.text}` : ''}
                   </div>
                 </div>
                 <button style={linkStyle} onClick={() => onEdit(h)}>Edit</button>
                 <button style={linkStyle} onClick={() => onArchive(h.id)}>Archive</button>
               </div>
-            ))}
+              );
+            })}
           </div>
         );
       })}

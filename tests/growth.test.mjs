@@ -17,7 +17,7 @@ const record = (days, misses = [], todayDone = false) => {
 };
 
 test('the ladder: a step up is the next round number at least 10% longer', () => {
-  assert.deepEqual([2, 10, 20, 45, 120, 200].map(longer), [3, 12, 25, 50, 140, 230]);
+  assert.deepEqual([2, 10, 20, 45, 110, 120, 200].map(longer), [3, 12, 25, 50, 120, null, null]);
   assert.deepEqual([10, 30, 2].map(lighter), [5, 20, 1]);
 });
 
@@ -84,4 +84,12 @@ test('held for: back to the last double miss; and one step at a time', async () 
   for (const k of Object.keys(c)) c[k].o = true;
   assert.equal(todaysOffer([stepped, other], c, today), null);
   assert.equal(todaysOffer([other], c, today).habit.id, 'o');
+});
+
+test('two hours is the top of the ladder, and Today stays quiet after an answer', () => {
+  const long = habit({ text: 'Ride 120 min', durationMinutes: 120, stages: [{ from: '2026-09-01', text: 'Ride 120 min', durationMinutes: 120, recurrence: { type: 'daily' } }] });
+  assert.equal(growthOffer(long, record(30), today), null);
+  assert.equal(growthOffer({ ...long, next: 'Ride a century' }, record(30), today).proposal.text, 'Ride a century');
+  assert.equal(todaysOffer([habit()], record(30), today, { quietUntil: '2026-11-01' }), null);
+  assert.equal(todaysOffer([habit()], record(30), today, { quietUntil: '2026-10-26' }).habit.id, 'm');
 });

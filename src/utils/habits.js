@@ -58,7 +58,7 @@ const fieldsOf = (x) => ({ text: x.text, durationMinutes: x.durationMinutes ?? n
 // Give every habit a valid ledger of stages. A habit saved before stages existed begins on the
 // day it was created, or on the first day it was checked if that came earlier, so days before it
 // existed stop counting it as missed. Pure and idempotent.
-export const migrateHabit = (habit, completions = {}) => {
+export const migrateHabit = (habit, completions = {}, todayKey = formatDateKey(new Date())) => {
   const recurrence = validRecurrence(habit.recurrence);
   const base = { ...habit, recurrence, timeBlock: typeof habit.timeBlock === 'string' ? habit.timeBlock : 'morning', sortOrder: Number.isFinite(habit.sortOrder) ? habit.sortOrder : 0 };
   const clean = (Array.isArray(habit.stages) ? habit.stages : [])
@@ -73,6 +73,18 @@ export const migrateHabit = (habit, completions = {}) => {
     })
     .sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
   const stages = clean.filter((st, i) => i === clean.length - 1 || clean[i + 1].from !== st.from); // same day: the later wins
+  // An older build (one that predates stages, still cached on a device) edits only the habit's own
+  // fields. Keep that edit: a rename amends the latest stage, anything else becomes a stage from today.
+  const latest = stages[stages.length - 1];
+  if (latest && !latest.rest && habit.recurrence && typeof habit.text === 'string') {
+    const top = { text: habit.text, durationMinutes: Number.isFinite(habit.durationMinutes) ? habit.durationMinutes : null, recurrence };
+    const sameTerms = top.durationMinutes === latest.durationMinutes && JSON.stringify(top.recurrence) === JSON.stringify(latest.recurrence);
+    if (sameTerms && top.text !== latest.text) stages[stages.length - 1] = { ...latest, text: top.text };
+    else if (!sameTerms) {
+      if (latest.from >= todayKey) stages[stages.length - 1] = { ...latest, ...top };
+      else stages.push({ from: todayKey, ...top });
+    }
+  }
   if (stages.length === 0) {
     let begin = DATE_KEY.test(formatDateKey(habit.createdAt || '')) ? formatDateKey(habit.createdAt) : null;
     for (const [dk, day] of Object.entries(completions)) if (day && day[habit.id] && DATE_KEY.test(dk) && (!begin || dk < begin)) begin = dk;
@@ -153,6 +165,16 @@ export const restUntil = (fromKey, choice) => {
     return formatDateKey(new Date(from.getFullYear(), from.getMonth() + 1, Math.min(from.getDate(), last)));
   }
   return null;
+};
+
+// Bring an archived habit back from `todayKey`. The archived days become a rest, so they stay out
+// of the record instead of turning into missed days.
+export const restoreHabit = (habit, todayKey) => {
+  if (!habit.archivedAt) return habit;
+  const fromKey = formatDateKey(habit.archivedAt);
+  const back = { ...habit };
+  delete back.archivedAt;
+  return fromKey >= todayKey ? back : restHabit(back, fromKey, todayKey);
 };
 
 // Is the habit resting on this day (a rest stage in force)?

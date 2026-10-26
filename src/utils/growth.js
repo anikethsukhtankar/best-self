@@ -4,9 +4,10 @@ import { formatDateKey, parseDateKey, addDays } from './date.js';
 import { stageAt, stagesOf, isHabitScheduledForDay } from './habits.js';
 
 // Round minutes to walk up and down. A step is the next rung at least 10% longer: 10 → 12,
-// 20 → 25, 45 → 50. Small enough to feel easy, big enough to be growth.
+// 20 → 25, 45 → 50. Small enough to feel easy, big enough to be growth. Two hours is the top:
+// past it there is nothing to offer, the habit has arrived (a written next step still can be).
 export const LADDER = [1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90, 105, 120];
-export const longer = (m) => LADDER.find((v) => v >= m * 1.1) ?? Math.ceil((m * 1.15) / 5) * 5;
+export const longer = (m) => LADDER.find((v) => v >= m * 1.1) ?? (m < 120 ? 120 : null);
 export const lighter = (m) => [...LADDER].reverse().find((v) => v <= m * 0.67) ?? 1;
 
 // '10 min' in the name follows the minutes, so 'Meditate 10 min' becomes 'Meditate 12 min'.
@@ -74,7 +75,7 @@ export const growthOffer = (habit, completions, today = new Date()) => {
   if (age >= 21 && recent.length >= n && done >= n - 1) {
     let proposal = null;
     if (habit.next) proposal = { text: habit.next, durationMinutes: stage.durationMinutes, recurrence: stage.recurrence };
-    else if (stage.durationMinutes) {
+    else if (stage.durationMinutes && longer(stage.durationMinutes)) {
       const minutes = longer(stage.durationMinutes);
       proposal = { text: renamed(stage.text, stage.durationMinutes, minutes), durationMinutes: minutes, recurrence: stage.recurrence };
     }
@@ -92,8 +93,10 @@ export const growthOffer = (habit, completions, today = new Date()) => {
 };
 
 // The one habit to offer a next step on Today: the readiest, longest-held one. Growth comes one
-// step at a time, so nothing is offered within a week of any habit taking a step.
-export const todaysOffer = (habits, completions, today = new Date()) => {
+// step at a time, so nothing is offered within a week of any habit taking a step, nor while Today
+// is quiet after an answer (`quietUntil`).
+export const todaysOffer = (habits, completions, today = new Date(), { quietUntil } = {}) => {
+  if (quietUntil && quietUntil > formatDateKey(today)) return null;
   const weekAgo = formatDateKey(addDays(today, -7));
   const recentStep = habits.some((h) => !h.archivedAt && stagesOf(h).some((st, i) => i > 0 && !st.rest && st.from > weekAgo));
   if (recentStep) return null;
