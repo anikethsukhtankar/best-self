@@ -1,5 +1,5 @@
 import { useTheme } from '../hooks/useTheme';
-import { heldFor } from '../utils/growth';
+import { heldFor, describeStep } from '../utils/growth';
 
 // The one quiet offer on Today, and only once the day is done: a habit that has held is offered
 // its next step. Digits stay in the tooltip. Once set, the line says what tomorrow brings.
@@ -14,13 +14,13 @@ export function NextStep({ offer, pending, onBegin, onNotYet, compact }) {
     return (
       <div className="fade-in" style={wrap}>
         <div style={S.sectionLabel}>Next step</div>
-        <p style={{ ...sentence, color: theme.textSecondary, margin: 0 }}>Set. Tomorrow, <span style={{ color: theme.text }}>{pending.text}</span>.</p>
+        <p style={{ ...sentence, color: theme.textSecondary, margin: 0 }}>Set. Tomorrow, <span style={{ color: theme.text }}>{pending.text}{pending.durationMinutes && !pending.text.includes(`${pending.durationMinutes} min`) ? `, ${pending.durationMinutes} min` : ''}</span>.</p>
       </div>
     );
   }
 
   const { habit, offer: o } = offer;
-  const now = habit.text === o.proposal.text ? null : o.proposal.text;
+  const now = describeStep(habit, o.proposal);
   return (
     <div className="fade-in late" style={wrap}>
       <div style={S.sectionLabel}>Next step</div>

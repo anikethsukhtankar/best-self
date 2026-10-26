@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
-import { useData } from './hooks/useData';
+import { useData, hasStoredState, beginFresh } from './hooks/useData';
 import { useTheme } from './hooks/useTheme';
 import { ThemeProvider } from './hooks/ThemeProvider';
 import { AuthScreen } from './components/AuthScreen';
+import { Welcome } from './components/Welcome';
 import { PenroseFigure } from './components/PenroseFigure';
 import { LouverNumeral } from './components/LouverNumeral';
 import { HabitModal } from './components/HabitModal';
@@ -80,6 +81,17 @@ function ProgressBar({ completed, total, threshold, width = 96, style }) {
       <span style={S.progressText}>
         {complete ? '✓' : `${completed}/${total}`}
       </span>
+    </div>
+  );
+}
+
+// While looking around the sample year: a thin line across the top, and the way out.
+function SampleBanner({ onLeave }) {
+  const { theme } = useTheme();
+  return (
+    <div style={{ position: 'sticky', top: 0, zIndex: 150, background: theme.bg, borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 24, padding: '10px 16px', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.textMuted, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+      <span>A sample year, not saved</span>
+      <button style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', color: theme.text, textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer' }} onClick={onLeave}>Leave</button>
     </div>
   );
 }
@@ -182,7 +194,7 @@ function LeftPanel({ habits, completions, selectedDate, settings }) {
 }
 
 // Settings Modal Component
-function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, fullState, onImport, onExport, user, onSignOut, syncing, lastSynced }) {
+function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, fullState, onImport, onExport, user, onSignOut, syncing, lastSynced, sample, onSample, onLeaveSample }) {
   const { theme, S } = useTheme();
   const [threshold, setThreshold] = useState(settings.completionThreshold);
   const [darkMode, setDarkMode] = useState(settings.darkMode || false);
@@ -338,6 +350,19 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
           )}
         </div>
 
+        <div style={S.settingsSection}>
+          <label style={S.modalLabel}>Sample year</label>
+          <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 16 }}>
+            {sample ? 'You are looking around a sample year. Nothing here is saved.' : 'Look around fourteen months of sample history. What you have is not touched.'}
+          </p>
+          <button
+            style={{ ...S.modalButton, marginTop: 0, background: 'transparent', color: theme.text, border: `1px solid ${theme.accent}` }}
+            onClick={() => { onClose(); (sample ? onLeaveSample : onSample)(); }}
+          >
+            {sample ? 'Leave the sample year' : 'Look around a sample year'}
+          </button>
+        </div>
+
         <button
           style={S.modalButton}
           onClick={() => {
@@ -354,9 +379,9 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 }
 
 // Main Dashboard Component
-function Dashboard({ user, signOut, onDarkMode }) {
+function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onSample, onLeaveSample }) {
   const isMobile = useIsMobile();
-  const { state, save, importData, exportData, syncing, lastSynced } = useData(user);
+  const { state, save, importData, exportData, syncing, lastSynced } = useData(user, { sample, darkMode: startDark });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
@@ -501,6 +526,8 @@ function Dashboard({ user, signOut, onDarkMode }) {
   // Mobile Layout
   if (isMobile) {
     return (
+      <>
+      {sample && <SampleBanner onLeave={onLeaveSample} />}
       <div style={S.mobileContainer}>
         {/* Mobile Header */}
         <div style={S.mobileHeader}>
@@ -652,14 +679,20 @@ function Dashboard({ user, signOut, onDarkMode }) {
             onSignOut={signOut}
             syncing={syncing}
             lastSynced={lastSynced}
+            sample={sample}
+            onSample={onSample}
+            onLeaveSample={onLeaveSample}
           />
         )}
       </div>
+      </>
     );
   }
 
   // Desktop Layout
   return (
+    <>
+    {sample && <SampleBanner onLeave={onLeaveSample} />}
     <div style={S.pageWrapper}>
       <LeftPanel
         habits={state.habits}
@@ -799,6 +832,9 @@ function Dashboard({ user, signOut, onDarkMode }) {
             onSignOut={signOut}
             syncing={syncing}
             lastSynced={lastSynced}
+            sample={sample}
+            onSample={onSample}
+            onLeaveSample={onLeaveSample}
           />
         )}
       </div>
@@ -814,6 +850,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
         />
       </div>
     </div>
+    </>
   );
 }
 
@@ -821,6 +858,8 @@ function Dashboard({ user, signOut, onDarkMode }) {
 export default function App() {
   const { user, loading, signInWithGoogle, signOut, isFirebaseConfigured } = useAuth();
   const [skipAuth, setSkipAuth] = useState(false);
+  // 'welcome' on a device with nothing stored yet, 'sample' while looking around, else 'real'.
+  const [mode, setMode] = useState(() => (hasStoredState() ? 'real' : 'welcome'));
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const stored = localStorage.getItem('best-self-state');
@@ -849,9 +888,26 @@ export default function App() {
     );
   }
 
+  if (!user && mode === 'welcome') {
+    return (
+      <ThemeProvider darkMode={darkMode}>
+        <Welcome onBegin={() => { beginFresh(); setMode('real'); }} onSample={() => setMode('sample')} />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider darkMode={darkMode}>
-      <Dashboard user={user} signOut={signOut} onDarkMode={setDarkMode} />
+      <Dashboard
+        key={mode}
+        user={mode === 'sample' ? null : user}
+        signOut={signOut}
+        onDarkMode={setDarkMode}
+        sample={mode === 'sample'}
+        darkMode={darkMode}
+        onSample={() => setMode('sample')}
+        onLeaveSample={() => setMode(user || hasStoredState() ? 'real' : 'welcome')}
+      />
     </ThemeProvider>
   );
 }

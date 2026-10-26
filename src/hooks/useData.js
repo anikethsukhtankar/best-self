@@ -2,14 +2,28 @@ import { useState, useEffect, useCallback } from 'react';
 import { loadFirebase, isFirebaseConfigured } from '../firebase';
 import { STORAGE_KEY, DEFAULT_STATE } from '../utils/constants';
 import { sanitizeData } from '../utils/habits';
+import { sampleState } from '../utils/sample';
 
-export function useData(user) {
-  const [state, setState] = useState(null);
+// Is there anything stored on this device yet? (A first visit shows the welcome.)
+export const hasStoredState = () => {
+  try { return localStorage.getItem(STORAGE_KEY) !== null; } catch { return false; }
+};
+
+// Start this device with the default habits, stored right away so the welcome does not return.
+export const beginFresh = () => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeData(DEFAULT_STATE))); } catch { /* private mode: it lives in memory */ }
+};
+
+// `sample`: a year of sample history held in memory only. Nothing is read from or written to
+// storage or the cloud while it is shown, so real data is never touched.
+export function useData(user, { sample = false, darkMode = false } = {}) {
+  const [state, setState] = useState(() => (sample ? sanitizeData(sampleState(new Date(), { darkMode })) : null));
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
 
   // Load initial data
   useEffect(() => {
+    if (sample) return;
     const loadData = async () => {
       if (user && isFirebaseConfigured) {
         // User is signed in - load from Firestore
@@ -55,11 +69,11 @@ export function useData(user) {
     };
 
     loadData();
-  }, [user]);
+  }, [user, sample]);
 
   // Subscribe to real-time updates when signed in
   useEffect(() => {
-    if (!user || !isFirebaseConfigured) return undefined;
+    if (sample || !user || !isFirebaseConfigured) return undefined;
 
     let cancelled = false;
     let unsubscribe = () => {};
@@ -89,11 +103,12 @@ export function useData(user) {
       cancelled = true;
       unsubscribe();
     };
-  }, [user]);
+  }, [user, sample]);
 
   // Save data
   const save = useCallback(async (newState) => {
     setState(newState);
+    if (sample) return;
 
     if (user && isFirebaseConfigured) {
       // Save to Firestore
@@ -119,7 +134,7 @@ export function useData(user) {
     } catch (err) {
       console.error('Error saving to localStorage:', err);
     }
-  }, [user]);
+  }, [user, sample]);
 
   // Import data (for backup restore)
   const importData = useCallback(async (data) => {

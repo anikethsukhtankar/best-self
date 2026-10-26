@@ -107,6 +107,13 @@ export const todaysOffer = (habits, completions, today = new Date()) => {
   return best;
 };
 
+// The proposed step in a few words: its new name, or its new minutes when the name stays.
+export const describeStep = (habit, proposal) => {
+  if (proposal.text !== habit.text) return proposal.text;
+  if (proposal.durationMinutes && proposal.durationMinutes !== habit.durationMinutes) return `${proposal.durationMinutes} min`;
+  return null;
+};
+
 // 'three weeks', 'a month', 'five months': how long a stage has held, in words.
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 export const heldFor = (days) => {

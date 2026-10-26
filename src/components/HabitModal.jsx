@@ -5,7 +5,7 @@ import { formatDateKey } from '../utils/date';
 import { stagesOf, isResting, describeRecurrence, REST_CHOICES } from '../utils/habits';
 import { shortDate } from '../utils/todos';
 import { roman } from '../utils/turn';
-import { growthOffer, heldFor } from '../utils/growth';
+import { growthOffer, heldFor, describeStep } from '../utils/growth';
 
 const sameRecurrence = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -98,7 +98,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
           <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: `1px solid ${theme.borderLight}` }} title={`Done ${offer.evidence.done} of the last ${offer.evidence.of} times`}>
             <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.6, color: theme.text, margin: '0 0 12px' }}>
               {offer.kind === 'ready' ? `Steady for ${heldFor(offer.evidence.sinceDays)}.` : 'This one has been heavy lately.'}
-              {offer.proposal && offer.proposal.text !== habit.text && <span style={{ color: theme.textMuted }}> {offer.kind === 'ready' ? 'Next' : 'Lighter'}: {offer.proposal.text}.</span>}
+              {offer.proposal && describeStep(habit, offer.proposal) && <span style={{ color: theme.textMuted }}> {offer.kind === 'ready' ? 'Next' : 'Lighter'}: {describeStep(habit, offer.proposal)}.</span>}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 28px' }}>
               {offer.proposal && <button style={textButton(theme.text, true)} onClick={() => take(offer.proposal)}>{offer.kind === 'ready' ? 'Raise a step' : 'Take a lighter step'}</button>}
