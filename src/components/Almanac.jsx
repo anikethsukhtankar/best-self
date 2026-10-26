@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useWidth } from '../hooks/useWidth';
 import { MONTH_NAMES } from '../utils/constants';
-import { parseDateKey } from '../utils/date';
+import { parseDateKey, formatDate } from '../utils/date';
 import { recordYears, recordStart, monthPlate, chapterFor, yearEvents } from '../utils/almanac';
 
-const monthDay = (dk) => parseDateKey(dk).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const monthDay = (dk) => formatDate(parseDateKey(dk));
 
 // One small month, printed: an X for a kept day, a single stroke for a begun one, a paper dot for
 // every other past day, nothing for days to come. The traveller stands on today.

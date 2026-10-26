@@ -2,7 +2,7 @@
 // - An open task belongs to its due date, or to the day it was created when it has none.
 // - An open task from a past day is carried forward onto today, tagged with its original day.
 // - A completed task stays on the day it was completed.
-import { formatDateKey } from './date.js';
+import { formatDateKey, formatDate } from './date.js';
 
 export const todoDayKey = (todo) => (todo.dueDate ? todo.dueDate.slice(0, 10) : formatDateKey(todo.createdAt));
 
@@ -21,5 +21,5 @@ export const getTodosForDay = (todos, date, today = new Date()) => {
 // "Sep 8" style label for a date key, for the small muted tag on a task.
 export const shortDate = (dateKey) => {
   const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return formatDate(new Date(y, m - 1, d));
 };

@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { DAY_LETTERS, MONTH_NAMES } from '../utils/constants';
-import { isSameDay, formatDateKey } from '../utils/date';
+import { isSameDay, formatDateKey, formatDate } from '../utils/date';
 import { getDayCompletion } from '../utils/habits';
 import { monthDays, gridLayout, dayMarks, LETTER_SIZE, NUMERAL_SIZE } from '../utils/calendar';
 import { dayKinds, isBuilt, monthRows, bridges, walls, projection, footprint, easeOut, monthChapter, BLOCK_HEIGHT } from '../utils/turn';
@@ -208,7 +208,7 @@ function Elevation({ L, uid, e, days, kinds, status, chapter, theme, onSelect, w
     const kind = kinds[i];
     const { u0, u1, v0, v1 } = footprint(i, cellFrac, e);
     const row = Math.floor(i / 7);
-    const tip = `${days[i].toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}${status[i].total ? ` · ${Math.round(status[i].percentage * 100)}% (${status[i].completed}/${status[i].total})` : ''}`;
+    const tip = `${formatDate(days[i], 'weekdayMonthDay')}${status[i].total ? ` · ${Math.round(status[i].percentage * 100)}% (${status[i].completed}/${status[i].total})` : ''}`;
     if (!isBuilt(kind)) {
       const base = [proj(u0, v0), proj(u1, v0), proj(u1, v1), proj(u0, v1)];
       const ink = kind === 'today' ? theme.accent : kind === 'future' ? theme.textFaintest : theme.textFaint;

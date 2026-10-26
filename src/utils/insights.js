@@ -1,5 +1,5 @@
 // Pure analytics over the completions data. No React, no DOM.
-import { formatDateKey, addDays, getWeekStart } from './date.js';
+import { formatDateKey, addDays, getWeekStart, formatDate } from './date.js';
 import { getDayCompletion, isDayComplete, isHabitScheduledForDay } from './habits.js';
 
 const dayDone = (habits, completions, threshold, d) => {
@@ -123,7 +123,7 @@ export const yearGrid = (habits, completions, threshold, today = new Date(), wee
     // month, unless a new month begins within the next two columns (the labels would collide).
     const firstOfMonth = cells.find((cell) => cell.date.getDate() === 1);
     const labelDate = firstOfMonth ? firstOfMonth.date : w === 0 && cells[0].date.getDate() < 18 ? cells[0].date : null;
-    columns.push({ cells, monthLabel: labelDate ? labelDate.toLocaleDateString(undefined, { month: 'short' }) : null, month: (labelDate || cells[0].date).getMonth() });
+    columns.push({ cells, monthLabel: labelDate ? formatDate(labelDate, 'month') : null, month: (labelDate || cells[0].date).getMonth() });
   }
   return columns;
 };

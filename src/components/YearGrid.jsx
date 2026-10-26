@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { formatDate } from '../utils/date';
 import { yearGrid } from '../utils/insights';
 
 const CELL = 12;
@@ -42,7 +43,7 @@ export function YearGrid({ habits, completions, threshold, today = new Date() })
                   {col.cells.map((cell) => (
                     <div
                       key={cell.dateKey}
-                      title={cell.level === 'future' ? '' : `${cell.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${cell.total ? `${Math.round(cell.percentage * 100)}% (${cell.completed}/${cell.total})` : 'nothing scheduled'}`}
+                      title={cell.level === 'future' ? '' : `${formatDate(cell.date, 'weekdayMonthDay')} · ${cell.total ? `${Math.round(cell.percentage * 100)}% (${cell.completed}/${cell.total})` : 'nothing scheduled'}`}
                       onMouseEnter={() => cell.level !== 'future' && setTip(cell)}
                       style={{ width: CELL, height: CELL, background: ink(cell.level), border: cell.level === 'future' ? `1px solid ${theme.gridEmpty}` : 'none', boxSizing: 'border-box' }}
                     />
@@ -55,7 +56,7 @@ export function YearGrid({ habits, completions, threshold, today = new Date() })
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, minHeight: 18 }}>
         <span style={{ fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-          {tip ? `${tip.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${tip.total ? `${Math.round(tip.percentage * 100)}% (${tip.completed}/${tip.total})` : 'nothing scheduled'}` : ''}
+          {tip ? `${formatDate(tip.date, 'weekdayMonthDay')} · ${tip.total ? `${Math.round(tip.percentage * 100)}% (${tip.completed}/${tip.total})` : 'nothing scheduled'}` : ''}
         </span>
         <div style={{ ...S.gridLegend, marginTop: 0 }}>
           {[['none', 'rest'], ['low', 'under'], ['mid', 'partial'], ['high', 'met']].map(([lvl, label]) => (

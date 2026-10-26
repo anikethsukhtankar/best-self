@@ -3,14 +3,14 @@ import { useTheme } from '../hooks/useTheme';
 import { useWidth } from '../hooks/useWidth';
 import { staircase } from '../utils/staircase';
 import { habitBreakdown } from '../utils/insights';
-import { formatDateKey, parseDateKey } from '../utils/date';
+import { formatDateKey, parseDateKey, formatDate } from '../utils/date';
 import { isResting } from '../utils/habits';
 import { TIME_BLOCKS } from '../utils/constants';
 
 const BASE = 16; // the lowest tread sits this far above the ground line
 const HEADROOM = 9; // room above the highest tread for the traveller
 
-const weekLabel = (start, monthly) => parseDateKey(start).toLocaleDateString(undefined, monthly ? { month: 'short', year: 'numeric' } : { month: 'short', day: 'numeric' });
+const weekLabel = (start, monthly) => formatDate(parseDateKey(start), monthly ? 'monthYear' : 'monthDay');
 
 // One habit's life: weekly columns of stone under a tread that rises with every step up.
 function Stair({ habit, completions, threshold, today, onHover }) {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { formatDate } from '../utils/date';
 import { rollingAverage } from '../utils/insights';
 
 const W = 600;
@@ -58,7 +59,7 @@ export function TrendLine({ habits, completions, today = new Date() }) {
     setHover(Math.max(0, Math.min(series.length - 1, i)));
   };
   const h = hover !== null ? series[hover] : null;
-  const label = (dk) => { const [yy, mm, dd] = dk.split('-').map(Number); return new Date(yy, mm - 1, dd).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+  const label = (dk) => { const [yy, mm, dd] = dk.split('-').map(Number); return formatDate(new Date(yy, mm - 1, dd)); };
 
   return (
     <div style={S.trendContainer}>
