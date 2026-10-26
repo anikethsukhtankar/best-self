@@ -40,7 +40,10 @@ export function Stair({ habit, s, onHover, size = 'row' }) {
     const prev = s.treads[k - 1];
     if (prev && !prev.before && prev.level !== t.level) profile.push(<line key={`r${k}`} x1={x0} x2={x0} y1={y(prev.level)} y2={ty} stroke={theme.accent} strokeWidth={1} />);
     profile.push(<line key={`t${k}`} x1={x0} x2={x1} y1={ty} y2={ty} stroke={theme.accent} strokeWidth={1} strokeDasharray={t.rest ? '2 3' : undefined} />);
-    depth.push(<line key={`d${k}`} x1={x0 + dx} x2={Math.min(width, x1 + dx)} y1={ty - dy} y2={ty - dy} stroke={theme.textFaintest} strokeWidth={1} />);
+    // The tread's far edge stops at the next riser when the next tread is higher, so it never shows
+    // through that taller stone.
+    const next = s.treads[k + 1];
+    depth.push(<line key={`d${k}`} x1={x0 + dx} x2={next && next.level > t.level ? x1 : Math.min(width, x1 + dx)} y1={ty - dy} y2={ty - dy} stroke={theme.textFaintest} strokeWidth={1} />);
   });
 
   return (
@@ -99,11 +102,11 @@ export function HabitStairs({ habits, completions, threshold, blockOrder = TIME_
         return (
           <div key={habit.id} style={{ padding: '18px 0 20px', borderBottom: `1px solid ${theme.borderLight}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, marginBottom: 12, minHeight: 21 }}>
-              <span style={{ fontSize: 14, color: theme.text, minWidth: 0 }}>
+              <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 10, fontSize: 14, color: theme.text, minWidth: 0 }}>
                 {onOpen ? (
                   <button style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }} onClick={() => onOpen(habit.id)}>{stage?.text ?? habit.text}</button>
                 ) : (stage?.text ?? habit.text)}
-                <span style={{ fontSize: 12, color: theme.textMuted, marginLeft: 10 }}>{resting ? 'resting' : s.rooted}</span>
+                <span style={{ fontSize: 12, color: theme.textMuted, whiteSpace: 'nowrap' }}>{resting ? 'resting' : s.rooted}</span>
               </span>
               <span style={{ fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right' }}>
                 {hover[habit.id] || `${s.times} ${s.times === 1 ? 'time' : 'times'}${rate === null || rate === undefined ? '' : ` · ${Math.round(rate * 100)}% lately`}`}

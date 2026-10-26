@@ -163,7 +163,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
         <input
           type="text"
           value={next}
-          placeholder={steps > 1 ? 'And after that? (optional)' : 'Its next step, once it has held (optional)'}
+          placeholder={steps > 1 ? 'And after that? (optional)' : 'Its next step (optional)'}
           style={{ ...S.modalInput, fontSize: 16, padding: '10px 0', marginBottom: 8 }}
           onChange={(ev) => setNext(ev.target.value)}
           onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }}
