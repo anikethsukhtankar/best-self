@@ -19,3 +19,9 @@ export const getWeekStart = (d) => {
 };
 
 export const isSameDay = (a, b) => formatDateKey(a) === formatDateKey(b);
+
+// A 'YYYY-MM-DD' key as a local date (new Date('YYYY-MM-DD') would be UTC midnight).
+export const parseDateKey = (dateKey) => {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};

@@ -98,3 +98,12 @@ test('archiving keeps the days before it as they were', () => {
   assert.equal(isHabitScheduledForDay(arch, new Date(2026, 8, 8)), true);
   assert.equal(isHabitScheduledForDay(arch, new Date(2026, 8, 9)), false);
 });
+
+test('rest lengths: a week, two weeks, a month (clamped to its last day), or open', async () => {
+  const { restUntil } = await import('../src/utils/habits.js');
+  assert.equal(restUntil('2026-10-26', 'week'), '2026-11-02');
+  assert.equal(restUntil('2026-10-26', 'fortnight'), '2026-11-09');
+  assert.equal(restUntil('2026-01-31', 'month'), '2026-02-28');
+  assert.equal(restUntil('2026-12-15', 'month'), '2027-01-15');
+  assert.equal(restUntil('2026-10-26', 'open'), null);
+});

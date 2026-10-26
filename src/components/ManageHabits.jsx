@@ -1,11 +1,19 @@
 import { useTheme } from '../hooks/useTheme';
-import { describeRecurrence } from '../utils/habits';
+import { describeRecurrence, isResting, stagesOf } from '../utils/habits';
+import { formatDateKey } from '../utils/date';
+import { shortDate } from '../utils/todos';
 
-// Every habit, active ones grouped by time block, archived ones on a shelf below.
-export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit, onArchive, onRestore }) {
+// Every habit: active ones grouped by time block, resting ones next, archived ones on a shelf below.
+export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit, onArchive, onRestore, onResume }) {
   const { theme, S } = useTheme();
-  const active = habits.filter((h) => !h.archivedAt);
+  const todayKey = formatDateKey(new Date());
+  const resting = habits.filter((h) => !h.archivedAt && isResting(h, todayKey));
+  const active = habits.filter((h) => !h.archivedAt && !isResting(h, todayKey));
   const archived = habits.filter((h) => h.archivedAt);
+  const restingUntil = (h) => {
+    const st = stagesOf(h)[stagesOf(h).length - 1];
+    return st.until ? `until ${shortDate(st.until)}` : 'until you bring it back';
+  };
   const linkStyle = { ...S.tab, fontSize: 12, color: theme.textMuted, marginLeft: 16 };
 
   return (
@@ -40,6 +48,24 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
 
       {active.length === 0 && (
         <p style={S.settingsNote}>No active habits. Add one and it will appear on its days.</p>
+      )}
+
+      {resting.length > 0 && (
+        <div style={{ ...S.manageBlockSection, marginTop: 56 }}>
+          <div style={S.sectionLabel}>Resting</div>
+          {resting.map((h) => (
+            <div key={h.id} style={S.manageHabitRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={S.manageHabitText}>{h.text}</div>
+                <div style={{ ...S.manageHabitMeta, marginLeft: 0, marginTop: 2, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+                  {labels[h.timeBlock] || h.timeBlock} · resting {restingUntil(h)}
+                </div>
+              </div>
+              <button style={linkStyle} onClick={() => onEdit(h)}>Edit</button>
+              <button style={linkStyle} onClick={() => onResume(h.id)}>Bring back</button>
+            </div>
+          ))}
+        </div>
       )}
 
       {archived.length > 0 && (

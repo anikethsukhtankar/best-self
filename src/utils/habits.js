@@ -1,5 +1,5 @@
 // Habit-related utility functions
-import { formatDateKey } from './date.js';
+import { formatDateKey, parseDateKey, addDays } from './date.js';
 import { DAY_NAMES, DEFAULT_STATE } from './constants.js';
 
 // A habit is a ledger of dated stages: [{ from: 'YYYY-MM-DD', text, durationMinutes, recurrence,
@@ -130,6 +130,20 @@ export const resumeHabit = (habit, fromKey) => {
   if (last.from >= fromKey) stages.pop(); // rested and resumed the same day: as if it never rested
   else stages.push({ from: fromKey, ...fieldsOf(last) });
   return { ...habit, stages };
+};
+
+// When a rest that begins on `fromKey` ends: a week, two weeks, the same date next month (or its
+// last day), or open-ended until the person brings the habit back.
+export const REST_CHOICES = [['week', 'A week'], ['fortnight', 'Two weeks'], ['month', 'A month'], ['open', 'Until I return']];
+export const restUntil = (fromKey, choice) => {
+  const from = parseDateKey(fromKey);
+  if (choice === 'week') return formatDateKey(addDays(from, 7));
+  if (choice === 'fortnight') return formatDateKey(addDays(from, 14));
+  if (choice === 'month') {
+    const last = new Date(from.getFullYear(), from.getMonth() + 2, 0).getDate();
+    return formatDateKey(new Date(from.getFullYear(), from.getMonth() + 1, Math.min(from.getDate(), last)));
+  }
+  return null;
 };
 
 // Is the habit resting on this day (a rest stage in force)?

@@ -18,7 +18,7 @@ import {
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
-import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, changeHabit } from './utils/habits';
+import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, changeHabit, restHabit, resumeHabit, restUntil } from './utils/habits';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -409,6 +409,19 @@ function Dashboard({ user, signOut, onDarkMode }) {
     setEditor(null);
   }, [state, save]);
 
+  // Rest from today, or from tomorrow if it is already checked today, so a checked day stays checked.
+  const restHabitFor = useCallback((id, choice) => {
+    const now = new Date();
+    const fromKey = formatDateKey(state.completions[formatDateKey(now)]?.[id] ? addDays(now, 1) : now);
+    save({ ...state, habits: state.habits.map(h => h.id === id ? restHabit(h, fromKey, restUntil(fromKey, choice)) : h) });
+    setEditor(null);
+  }, [state, save]);
+
+  const resumeHabitFor = useCallback(id => {
+    save({ ...state, habits: state.habits.map(h => h.id === id ? resumeHabit(h, formatDateKey(new Date())) : h) });
+    setEditor(null);
+  }, [state, save]);
+
   const restoreHabit = useCallback(id => {
     save({ ...state, habits: state.habits.map(h => {
       if (h.id !== id) return h;
@@ -489,6 +502,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
             onEdit={habit => setEditor({ habit })}
             onArchive={archiveHabit}
             onRestore={restoreHabit}
+            onResume={resumeHabitFor}
           />
         ) : tab === 'today' ? (
           <>
@@ -580,6 +594,8 @@ function Dashboard({ user, signOut, onDarkMode }) {
             defaultBlock={editor.defaultBlock}
             onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
             onArchive={archiveHabit}
+            onRest={restHabitFor}
+            onResume={resumeHabitFor}
             onClose={closeEditor}
           />
         )}
@@ -644,6 +660,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
             onEdit={habit => setEditor({ habit })}
             onArchive={archiveHabit}
             onRestore={restoreHabit}
+            onResume={resumeHabitFor}
           />
         ) : tab === 'today' ? (
           <>
@@ -721,6 +738,8 @@ function Dashboard({ user, signOut, onDarkMode }) {
             defaultBlock={editor.defaultBlock}
             onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
             onArchive={archiveHabit}
+            onRest={restHabitFor}
+            onResume={resumeHabitFor}
             onClose={closeEditor}
           />
         )}
