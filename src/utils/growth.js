@@ -10,11 +10,15 @@ export const LADDER = [1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60
 export const longer = (m) => LADDER.find((v) => v >= m * 1.1) ?? (m < 120 ? 120 : null);
 export const lighter = (m) => [...LADDER].reverse().find((v) => v <= m * 0.67) ?? 1;
 
-// '10 min' in the name follows the minutes, so 'Meditate 10 min' becomes 'Meditate 12 min' and
-// 'Plank 1 minute' becomes 'Plank 2 minutes'. Only a whole number matches: '15 min' is not '5 min'.
-const renamed = (text, from, to) => (from
-  ? text.replace(new RegExp(`(^|\\D)${from} min(ute)?(s)?\\b`), (_, pre, unit, s) => `${pre}${to} min${unit ? (to === 1 ? 'ute' : 'utes') : (s ?? '')}`)
-  : text);
+// The time in the name follows the minutes: 'Meditate 10 min' becomes 'Meditate 12 min', 'Plank
+// 1 minute' becomes 'Plank 2 minutes', and 'Study 1 Hour' becomes 'Study 75 min' (or '2 Hours'
+// when the new time is whole hours). Only a whole number matches: '15 min' is not '5 min'.
+const renamed = (text, from, to) => {
+  if (!from) return text;
+  const inMinutes = text.replace(new RegExp(`(^|\\D)${from} min(ute)?(s)?\\b`), (_, pre, unit, s) => `${pre}${to} min${unit ? (to === 1 ? 'ute' : 'utes') : (s ?? '')}`);
+  if (inMinutes !== text || from % 60) return inMinutes;
+  return text.replace(new RegExp(`(^|\\D)${from / 60} (hour)s?\\b`, 'i'), (_, pre, hour) => `${pre}${to % 60 ? `${to} min` : `${to / 60} ${hour}${to === 60 ? '' : 's'}`}`);
+};
 
 const daysPerWeek = (recurrence) => (recurrence.type === 'daily' ? 7 : recurrence.days.length);
 

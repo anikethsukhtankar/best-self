@@ -138,3 +138,13 @@ test('next steps: written minutes come along, minutes in a name change as whole 
   assert.equal(growthOffer(named('Walk 15 min, stretch 5 min', 5), held, today).proposal.text, 'Walk 15 min, stretch 7 min');
   assert.deepEqual([351, 364, 547, 548, 730, 1095].map(heldFor), ['a year', 'a year', 'a year', 'two years', 'two years', 'three years']);
 });
+
+test('a name in hours follows the minutes too', () => {
+  const held = record(30);
+  const named = (text, minutes) => habit({ text, durationMinutes: minutes, stages: [{ from: '2026-09-01', text, durationMinutes: minutes, recurrence: { type: 'daily' } }] });
+  assert.equal(growthOffer(named('Study 1 Hour', 60), held, today).proposal.text, 'Study 75 min');
+  // Two hours is the top of the ladder: nothing to offer, and heavy offers a lighter step.
+  assert.equal(growthOffer(named('Study 2 Hours', 120), held, today), null);
+  assert.equal(growthOffer(named('Study 2 Hours', 120), record(30, [1, 2, 3, 4, 5, 6]), today).proposal.text, 'Study 75 min');
+  assert.equal(growthOffer(named('Read 30 min', 30), held, today).proposal.text, 'Read 35 min');
+});

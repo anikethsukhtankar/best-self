@@ -38,43 +38,24 @@ export const createHabit = (text, timeBlock, recurrence, durationMinutes, sortOr
   sortOrder
 });
 
-// Seed habits
+// Seed habits: the core list a fresh start begins with. Monday to Saturday the daily practice;
+// cycling, push, pull and legs take turns; study is an hour early in the week and two late in it;
+// Sunday is a rest day. Minutes only where the habit names them.
+const MON_TO_SAT = { type: 'specific_days', days: [1, 2, 3, 4, 5, 6] };
+const on = (...days) => ({ type: 'specific_days', days });
 export const SEED_HABITS = [
-  createHabit('Drink a glass of water on waking', 'morning', { type: 'daily' }, 1, 0),
-  createHabit('Morning ride: easy Zone 2 spin', 'morning', { type: 'specific_days', days: [1, 3, 5] }, 20, 1),
-  createHabit('Morning ride: Zone 2 or structured cycling', 'morning', { type: 'specific_days', days: [2, 4] }, 35, 2),
-  createHabit('Morning ride: long cycling session', 'morning', { type: 'specific_days', days: [6] }, 50, 3),
-  createHabit('Morning ride: short, easy spin', 'morning', { type: 'specific_days', days: [0] }, 15, 4),
-  createHabit('Waking Up meditation', 'morning', { type: 'daily' }, 10, 5),
-  createHabit('Review time-blocked schedule', 'morning', { type: 'daily' }, 2, 6),
-  createHabit('Push day: chest, shoulders, triceps', 'afternoon', { type: 'specific_days', days: [1] }, 45, 0),
-  createHabit('Pull day: back, biceps, rear delts', 'afternoon', { type: 'specific_days', days: [3] }, 45, 1),
-  createHabit('Leg day: squats, RDLs, lunges', 'afternoon', { type: 'specific_days', days: [5] }, 45, 2),
-  createHabit("Barry's HIIT class or a hike", 'afternoon', { type: 'specific_days', days: [0] }, 50, 3),
-  createHabit('Read 15 pages of a career book', 'postwork', { type: 'specific_days', days: [1, 6] }, 15, 0),
-  createHabit('Career deep work: system design', 'postwork', { type: 'specific_days', days: [2] }, 45, 1),
-  createHabit("Update brag doc", 'postwork', { type: 'specific_days', days: [3] }, 10, 2),
-  createHabit('Side project or tech writing', 'postwork', { type: 'specific_days', days: [4] }, 45, 3),
-  createHabit('Weekly career review', 'postwork', { type: 'specific_days', days: [5] }, 20, 4),
-  createHabit('Weekly planning', 'postwork', { type: 'specific_days', days: [0] }, 15, 5),
-  createHabit('Recovery: yoga or Therabody', 'evening', { type: 'daily' }, 18, 0),
-  createHabit('Shutdown ritual', 'evening', { type: 'daily' }, 5, 1),
-  createHabit('No caffeine after 12 PM', 'evening', { type: 'daily' }, null, 2),
-  createHabit('Lights out by bedtime', 'evening', { type: 'daily' }, null, 3),
-  // Mental fitness
-  createHabit('CBT thought challenge: reframe one negative thought', 'postwork', { type: 'specific_days', days: [1, 3] }, 5, 6),
-  createHabit('Read 15 pages of personal development or fiction', 'evening', { type: 'specific_days', days: [2, 4] }, 15, 4),
-  createHabit('Review your wins file and add recent accomplishments', 'postwork', { type: 'specific_days', days: [5] }, 10, 7),
-  createHabit('Learn something new: a podcast, article or documentary', 'postwork', { type: 'specific_days', days: [6] }, 20, 8),
-  createHabit("Gratitude reflection: the week's best moments", 'evening', { type: 'specific_days', days: [0] }, 10, 5),
-  // Social
-  createHabit("Text a friend you haven't talked to recently", 'postwork', { type: 'specific_days', days: [1] }, 2, 9),
-  createHabit('Have lunch with a colleague, away from your desk', 'afternoon', { type: 'specific_days', days: [2] }, null, 4),
-  createHabit('Plan a weekend hangout and send the invite', 'postwork', { type: 'specific_days', days: [3] }, 5, 10),
-  createHabit("Quality time: an 'events of the day' conversation", 'evening', { type: 'specific_days', days: [4] }, 15, 6),
-  createHabit('Call a friend or family member', 'postwork', { type: 'specific_days', days: [5] }, 15, 11),
-  createHabit('In-person social time: brunch, a sport or a hangout', 'afternoon', { type: 'specific_days', days: [6] }, null, 5),
-  createHabit('Relationship time with your partner, family or a close friend', 'evening', { type: 'specific_days', days: [0] }, null, 7),
+  createHabit('Cycling', 'morning', on(1, 3, 5), null, 0),
+  createHabit('Meditate', 'morning', MON_TO_SAT, null, 1),
+  createHabit('Rest Day', 'morning', on(0), null, 2),
+  createHabit('Push Day', 'afternoon', on(2), null, 0),
+  createHabit('Pull Day', 'afternoon', on(4), null, 1),
+  createHabit('Leg Day', 'afternoon', on(6), null, 2),
+  createHabit('5K Walk', 'postwork', MON_TO_SAT, null, 0),
+  createHabit('Study 1 Hour', 'postwork', on(1, 2, 3), 60, 1),
+  createHabit('Study 2 Hours', 'postwork', on(4, 5, 6), 120, 2),
+  createHabit('Read 30 min', 'evening', MON_TO_SAT, 30, 0),
+  createHabit('Drink 3L Water', 'evening', MON_TO_SAT, null, 1),
+  createHabit('Healthy Diet', 'evening', MON_TO_SAT, null, 2),
 ];
 
 // Default state
