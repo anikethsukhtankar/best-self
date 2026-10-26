@@ -672,15 +672,15 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
 
         {/* Mobile Bottom Navigation */}
         <div style={S.mobileNav}>
-          <button style={{ ...S.mobileNavItem, color: tab === 'today' ? theme.text : theme.textMuted }} onClick={() => setTab('today')}>
+          <button style={{ ...S.mobileNavItem, color: tab === 'today' ? theme.text : theme.textMuted }} onClick={() => { setTab('today'); setShowCalendar(false); }}>
             <span style={S.mobileNavIcon}>○</span>
             <span style={S.mobileNavLabel}>Today</span>
           </button>
-          <button style={{ ...S.mobileNavItem, color: tab === 'insights' ? theme.text : theme.textMuted }} onClick={() => setTab('insights')}>
+          <button style={{ ...S.mobileNavItem, color: tab === 'insights' ? theme.text : theme.textMuted }} onClick={() => { setTab('insights'); setShowCalendar(false); }}>
             <span style={S.mobileNavIcon}>◐</span>
             <span style={S.mobileNavLabel}>Insights</span>
           </button>
-          <button style={{ ...S.mobileNavItem, color: theme.textMuted }} onClick={() => setShowSettings(true)}>
+          <button style={{ ...S.mobileNavItem, color: theme.textMuted }} onClick={() => { setShowSettings(true); setShowCalendar(false); }}>
             <span style={S.mobileNavIcon}>☰</span>
             <span style={S.mobileNavLabel}>Settings</span>
           </button>
