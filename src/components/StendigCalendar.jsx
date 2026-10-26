@@ -77,6 +77,7 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
     if (ev.button !== undefined && ev.button !== 0) return;
     if (goal) { anim.current.pressedAt = null; turnTo(0); return; }
     anim.current.pressedAt = performance.now();
+    ev.currentTarget.setPointerCapture?.(ev.pointerId); // a release anywhere still reaches the name
     turnTo(1);
   };
   const onPressEnd = () => {
@@ -84,9 +85,16 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
     anim.current.pressedAt = null;
     if (at !== null && performance.now() - at > HOLD_MS) turnTo(0);
   };
+  // A cancelled press is a scroll or a swipe, not a tap: settle what it turned.
+  const onPressCancel = () => {
+    const at = anim.current.pressedAt;
+    anim.current.pressedAt = null;
+    if (at !== null) turnTo(0);
+  };
   const onKey = (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     ev.preventDefault();
+    if (ev.repeat) return; // a held key turns once
     turnTo(goal ? 0 : 1);
   };
 
@@ -122,7 +130,7 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
           aria-label={`${monthLabel}. ${goal ? 'Showing the month as an elevation; press to settle' : 'Press to turn the month into an elevation'}`}
           onPointerDown={onPressStart}
           onPointerUp={onPressEnd}
-          onPointerCancel={onPressEnd}
+          onPointerCancel={onPressCancel}
           onKeyDown={onKey}
           onContextMenu={(ev) => ev.preventDefault()}
         >

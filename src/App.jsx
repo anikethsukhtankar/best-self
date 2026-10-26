@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useData, hasStoredState, beginFresh } from './hooks/useData';
 import { useTheme } from './hooks/useTheme';
@@ -212,6 +212,14 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Focus moves into Settings when it opens, and back to where it was when it closes.
+  const closeRef = useRef(null);
+  useEffect(() => {
+    const before = document.activeElement;
+    closeRef.current?.focus();
+    return () => before?.focus?.();
+  }, []);
+
   const todayHabits = getHabitsForDay(habits, new Date());
   const required = Math.ceil(todayHabits.length * threshold);
   const habitCount = habits.filter(h => !h.archivedAt).length;
@@ -242,7 +250,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
   return (
     <div style={S.modalOverlay} onClick={onClose}>
       <div style={S.modal} onClick={ev => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label="Settings">
-        <button style={S.modalClose} onClick={onClose}>×</button>
+        <button ref={closeRef} style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
         <div style={S.modalTitle}>Settings</div>
 
         {user && (
@@ -277,8 +285,13 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
           <div style={S.darkModeToggle}>
             <span style={{ fontSize: 14, color: theme.text }}>Dark Mode</span>
             <div
+              role="switch"
+              aria-checked={darkMode}
+              aria-label="Dark Mode"
+              tabIndex={0}
               style={{ ...S.darkModeSwitch, ...(darkMode ? S.darkModeSwitchActive : {}) }}
               onClick={() => setDarkMode(!darkMode)}
+              onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setDarkMode(!darkMode); } }}
             >
               <div style={{ ...S.darkModeSwitchKnob, ...(darkMode ? S.darkModeSwitchKnobActive : {}) }} />
             </div>
@@ -292,6 +305,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
             <div
               role="switch"
               aria-checked={offerSteps}
+              aria-label="Offer a next step on Today"
               tabIndex={0}
               style={{ ...S.darkModeSwitch, ...(offerSteps ? S.darkModeSwitchActive : {}) }}
               onClick={() => setOfferSteps(!offerSteps)}
@@ -406,6 +420,15 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  // The month sheet closes on Escape, unless a modal or a field in front of it is using that Escape.
+  useEffect(() => {
+    if (!showCalendar) return undefined;
+    const onKey = (ev) => {
+      if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('[aria-modal="true"]')) setShowCalendar(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showCalendar]);
   const [navHover, setNavHover] = useState(null);
   const [editor, setEditor] = useState(null); // null | { habit } | { defaultBlock }
   const [page, setPage] = useState(null); // a habit's own page: { id, from: 'insights' | 'manage' }
@@ -567,6 +590,8 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
         </div>
 
         {/* Calendar Dropdown */}
+        {/* A tap below the sheet closes it rather than checking whatever lies beneath. */}
+        {showCalendar && <div aria-hidden="true" onClick={() => setShowCalendar(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />}
         {showCalendar && (
           <div style={S.mobileCalendarDropdown}>
             <StendigCalendar

@@ -28,7 +28,12 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
   const [taken, setTaken] = useState(false);
   const inputRef = useRef(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  // Focus moves into the editor when it opens, and back to where it was when it closes.
+  useEffect(() => {
+    const before = document.activeElement;
+    inputRef.current?.focus();
+    return () => before?.focus?.();
+  }, []);
   useEffect(() => {
     const onKey = (ev) => {
       if (ev.key !== 'Escape') return;
