@@ -13,12 +13,14 @@ import { StendigCalendar } from './components/StendigCalendar';
 import { HabitBlocks } from './components/HabitBlocks';
 import { TaskList } from './components/TaskList';
 import { InsightsView } from './components/InsightsView';
+import { NextStep } from './components/NextStep';
+import { todaysOffer } from './utils/growth';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
   DAY_NAMES, DAY_LETTERS, MONTH_NAMES, generateId
 } from './utils/constants';
 import { formatDateKey, addDays, getWeekStart, isSameDay } from './utils/date';
-import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, changeHabit, restHabit, resumeHabit, restUntil } from './utils/habits';
+import { getHabitsForDay, getDayCompletion, isDayComplete, stageAt, stagesOf, changeHabit, restHabit, resumeHabit, restUntil } from './utils/habits';
 import { getTodosForDay, shortDate } from './utils/todos';
 
 // Hook for mobile detection
@@ -387,7 +389,9 @@ function Dashboard({ user, signOut, onDarkMode }) {
     save({ ...state, todos: state.todos.filter(t => t.id !== id) });
   }, [state, save]);
 
-  const addHabit = useCallback(fields => {
+  const addHabit = useCallback(input => {
+    const fields = { ...input };
+    delete fields.step;
     const inBlock = state.habits.filter(h => h.timeBlock === fields.timeBlock);
     const sortOrder = inBlock.length ? Math.max(...inBlock.map(h => h.sortOrder ?? 0)) + 1 : 0;
     const { text, durationMinutes, recurrence } = fields;
@@ -397,9 +401,9 @@ function Dashboard({ user, signOut, onDarkMode }) {
   }, [state, save]);
 
   // Changes take effect from today; the days before keep the habit they had (see changeHabit).
-  const updateHabit = useCallback((id, fields) => {
+  const updateHabit = useCallback((id, { step, ...fields }) => {
     const todayKey = formatDateKey(new Date());
-    save({ ...state, habits: state.habits.map(h => h.id === id ? changeHabit(h, fields, todayKey) : h) });
+    save({ ...state, habits: state.habits.map(h => h.id === id ? changeHabit(h, fields, todayKey, { step }) : h) });
     setEditor(null);
   }, [state, save]);
 
@@ -420,6 +424,23 @@ function Dashboard({ user, signOut, onDarkMode }) {
   const resumeHabitFor = useCallback(id => {
     save({ ...state, habits: state.habits.map(h => h.id === id ? resumeHabit(h, formatDateKey(new Date())) : h) });
     setEditor(null);
+  }, [state, save]);
+
+  // Take the offered step from tomorrow, so today's score never moves under your hand.
+  const beginStep = useCallback((id, proposal) => {
+    const tomorrow = formatDateKey(addDays(new Date(), 1));
+    save({ ...state, habits: state.habits.map(h => {
+      if (h.id !== id) return h;
+      const grown = changeHabit(h, proposal, tomorrow, { step: true });
+      if (grown.next === proposal.text) delete grown.next;
+      return grown;
+    }) });
+  }, [state, save]);
+
+  // "Not yet" asks again in four weeks; "keep as it is" for a heavy habit in two.
+  const snoozeGrowth = useCallback((id, days = 28) => {
+    const until = formatDateKey(addDays(new Date(), days));
+    save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, growth: { ...(h.growth || {}), snoozeUntil: until } } : h) });
   }, [state, save]);
 
   const restoreHabit = useCallback(id => {
@@ -452,6 +473,12 @@ function Dashboard({ user, signOut, onDarkMode }) {
   const isDayCompleted = dayProgress.percentage >= state.settings.completionThreshold;
   const completions = state.completions || {};
   const labels = state.settings?.timeBlockLabels || TIME_BLOCK_LABELS;
+  // Growth is offered on Today only, and only after the day is done.
+  const tomorrowKey = formatDateKey(addDays(today, 1));
+  const offer = isToday && isDayCompleted ? todaysOffer(state.habits, completions, today) : null;
+  const pendingStep = isToday && isDayCompleted && !offer
+    ? state.habits.map(h => stagesOf(h)).map(st => st[st.length - 1]).find(st => st.from === tomorrowKey && !st.rest) || null
+    : null;
 
   const habitsByBlock = {};
   (state.settings?.timeBlockOrder || TIME_BLOCKS).forEach(block => {
@@ -560,6 +587,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
 
             {/* Mobile Habits */}
             <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} compact />
+            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={snoozeGrowth} compact />
 
             {/* Mobile Todos */}
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} compact />
@@ -594,8 +622,10 @@ function Dashboard({ user, signOut, onDarkMode }) {
             defaultBlock={editor.defaultBlock}
             onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
             onArchive={archiveHabit}
+            completions={completions}
             onRest={restHabitFor}
             onResume={resumeHabitFor}
+            onSnooze={snoozeGrowth}
             onClose={closeEditor}
           />
         )}
@@ -715,6 +745,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
             />
 
             <HabitBlocks blocks={habitsByBlock} dateKey={dk} labels={labels} done={completions[dk]} onToggle={toggleHabit} onEdit={h => setEditor({ habit: h })} />
+            <NextStep offer={offer} pending={pendingStep} onBegin={beginStep} onNotYet={snoozeGrowth} />
 
             <TaskList todos={dayTodos} tagFor={todoTag} onToggle={toggleTodo} onDelete={deleteTodo} onAdd={addTodo} />
 
@@ -738,8 +769,10 @@ function Dashboard({ user, signOut, onDarkMode }) {
             defaultBlock={editor.defaultBlock}
             onSave={fields => (editor.habit ? updateHabit(editor.habit.id, fields) : addHabit(fields))}
             onArchive={archiveHabit}
+            completions={completions}
             onRest={restHabitFor}
             onResume={resumeHabitFor}
+            onSnooze={snoozeGrowth}
             onClose={closeEditor}
           />
         )}

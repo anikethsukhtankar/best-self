@@ -89,3 +89,20 @@ body.dark {
     transition: none;
   }
 }
+
+/* A quiet arrival: 200ms, ease-out. "late" waits for the day strike to settle first. */
+.fade-in {
+  animation: fade-in 200ms ease-out both;
+}
+.fade-in.late {
+  animation-delay: 300ms;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-in, .fade-in.late {
+    animation: none;
+  }
+}

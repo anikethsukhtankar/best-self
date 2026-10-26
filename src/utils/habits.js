@@ -78,7 +78,12 @@ export const migrateHabit = (habit, completions = {}) => {
     for (const [dk, day] of Object.entries(completions)) if (day && day[habit.id] && DATE_KEY.test(dk) && (!begin || dk < begin)) begin = dk;
     stages.push({ from: begin || '0000-01-01', ...fieldsOf(base) });
   }
-  return { ...base, ...fieldsOf(stages[stages.length - 1]), stages };
+  const out = { ...base, ...fieldsOf(stages[stages.length - 1]), stages };
+  if (typeof out.next !== 'string' || !out.next.trim()) delete out.next;
+  const snooze = habit.growth?.snoozeUntil;
+  if (typeof snooze === 'string' && DATE_KEY.test(snooze)) out.growth = { snoozeUntil: snooze };
+  else delete out.growth;
+  return out;
 };
 
 // Normalise imported, synced or stored data: right shapes, defaults filled in, every habit with a
@@ -100,13 +105,14 @@ export const sanitizeData = (data) => {
 // The habit as it should be from `fromKey` on. A change made on the day its stage began (or a
 // rename alone) edits that stage in place; anything else starts a new stage, so the days before
 // keep the habit they actually had. The habit's own fields always mirror the latest stage.
-export const changeHabit = (habit, fields, fromKey) => {
+// `step: true` always starts a new stage: growth is never a rename of the stage before it.
+export const changeHabit = (habit, fields, fromKey, { step = false } = {}) => {
   const stages = [...stagesOf(habit)];
   const last = stages[stages.length - 1];
   const next = { text: fields.text ?? last.text, durationMinutes: fields.durationMinutes === undefined ? last.durationMinutes : fields.durationMinutes, recurrence: fields.recurrence ?? last.recurrence };
   const renameOnly = next.durationMinutes === last.durationMinutes && JSON.stringify(next.recurrence) === JSON.stringify(last.recurrence);
   // Editing a resting habit edits the habit it will come back as; it does not end the rest.
-  if (last.from >= fromKey || renameOnly || last.rest) stages[stages.length - 1] = { ...last, ...next };
+  if (last.from >= fromKey || (renameOnly && !step) || last.rest) stages[stages.length - 1] = { ...last, ...next };
   else stages.push({ from: fromKey, ...next });
   const extra = { ...fields };
   delete extra.text; delete extra.durationMinutes; delete extra.recurrence;

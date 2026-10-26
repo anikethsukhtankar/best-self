@@ -5,13 +5,16 @@ import { formatDateKey } from '../utils/date';
 import { stagesOf, isResting, describeRecurrence, REST_CHOICES } from '../utils/habits';
 import { shortDate } from '../utils/todos';
 import { roman } from '../utils/turn';
+import { growthOffer, heldFor } from '../utils/growth';
 
 const sameRecurrence = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // Add or edit a habit. Enter saves, Escape or the backdrop cancels. No <form>: handlers only.
 // An existing habit shows the stages it has grown through. A change to its days or minutes
 // starts a new stage from today, and the note under the fields says so before saving.
-export function HabitModal({ habit, labels, blockOrder, defaultBlock, onSave, onArchive, onRest, onResume, onClose }) {
+// When the habit has held (or feels heavy) a line at the top offers the next (or a lighter) step,
+// filling in the fields; nothing changes until Save.
+export function HabitModal({ habit, completions = {}, labels, blockOrder, defaultBlock, onSave, onArchive, onRest, onResume, onSnooze, onClose }) {
   const { theme, S } = useTheme();
   const isEdit = Boolean(habit);
   const [text, setText] = useState(habit?.text || '');
@@ -21,6 +24,9 @@ export function HabitModal({ habit, labels, blockOrder, defaultBlock, onSave, on
   const [duration, setDuration] = useState(habit?.durationMinutes ? String(habit.durationMinutes) : '');
   const [touched, setTouched] = useState(false);
   const [restOpen, setRestOpen] = useState(false);
+  const [next, setNext] = useState(habit?.next || '');
+  const [offer] = useState(() => (habit ? growthOffer(habit, completions, new Date()) : null));
+  const [taken, setTaken] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -51,16 +57,26 @@ export function HabitModal({ habit, labels, blockOrder, defaultBlock, onSave, on
   const steps = stages.filter((st) => !st.rest).length;
   const resting = isEdit && isResting(habit, todayKey);
   const startsStage = isEdit && !resting && current && current.from < todayKey && valid
-    && ((minutes || null) !== (current.durationMinutes ?? null) || !sameRecurrence(recurrence, current.recurrence));
+    && (taken || (minutes || null) !== (current.durationMinutes ?? null) || !sameRecurrence(recurrence, current.recurrence));
 
   const submit = () => {
     setTouched(true);
     if (!valid) return;
-    onSave({ text: name, timeBlock, recurrence, durationMinutes: minutes || null });
+    const grown = next.trim() && next.trim() !== name ? next.trim() : null;
+    onSave({ text: name, timeBlock, recurrence, durationMinutes: minutes || null, next: grown, step: taken });
+  };
+  // Fill the fields with the offered step. Saving makes it a new stage from today.
+  const take = (proposal) => {
+    setText(proposal.text);
+    setDuration(proposal.durationMinutes ? String(proposal.durationMinutes) : '');
+    setDaily(proposal.recurrence.type !== 'specific_days');
+    if (proposal.recurrence.type === 'specific_days') setDays(proposal.recurrence.days);
+    setTaken(true);
   };
   const toggleDay = (d) => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]));
 
   const pill = (selected) => ({ ...S.pill, ...(selected ? S.pillSelected : {}) });
+  const textButton = (color, underline = false) => ({ border: 'none', background: 'none', padding: '6px 0', fontFamily: 'inherit', fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', color, textDecoration: underline ? 'underline' : 'none', textUnderlineOffset: 5 });
   const quiet = { fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums' };
 
   let n = 0;
@@ -77,6 +93,20 @@ export function HabitModal({ habit, labels, blockOrder, defaultBlock, onSave, on
       <div style={S.modal} onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit habit' : 'New habit'}>
         <button style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
         <div style={S.modalTitle}>{isEdit ? 'Edit habit' : 'New habit'}</div>
+
+        {offer && !taken && !resting && (
+          <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: `1px solid ${theme.borderLight}` }} title={`Done ${offer.evidence.done} of the last ${offer.evidence.of} times`}>
+            <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.6, color: theme.text, margin: '0 0 12px' }}>
+              {offer.kind === 'ready' ? `Steady for ${heldFor(offer.evidence.sinceDays)}.` : 'This one has been heavy lately.'}
+              {offer.proposal && offer.proposal.text !== habit.text && <span style={{ color: theme.textMuted }}> {offer.kind === 'ready' ? 'Next' : 'Lighter'}: {offer.proposal.text}.</span>}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 28px' }}>
+              {offer.proposal && <button style={textButton(theme.text, true)} onClick={() => take(offer.proposal)}>{offer.kind === 'ready' ? 'Raise a step' : 'Take a lighter step'}</button>}
+              {offer.kind === 'heavy' && <button style={textButton(theme.textMuted)} onClick={() => setRestOpen(true)}>Rest it</button>}
+              <button style={textButton(theme.textMuted)} onClick={() => { onSnooze(habit.id, offer.kind === 'ready' ? 28 : 14); onClose(); }}>{offer.kind === 'ready' ? 'Not yet' : 'Keep as it is'}</button>
+            </div>
+          </div>
+        )}
 
         <input
           ref={inputRef}
@@ -121,6 +151,16 @@ export function HabitModal({ habit, labels, blockOrder, defaultBlock, onSave, on
           />
           <span style={{ fontSize: 14, color: theme.textMuted }}>min</span>
         </div>
+
+        <label style={{ ...S.modalLabel, marginTop: 28 }}>Grows into</label>
+        <input
+          type="text"
+          value={next}
+          placeholder="Its next step, once it has held (optional)"
+          style={{ ...S.modalInput, fontSize: 16, padding: '10px 0', marginBottom: 8 }}
+          onChange={(ev) => setNext(ev.target.value)}
+          onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }}
+        />
 
         {error && <p style={{ ...S.settingsNote, color: theme.text }}>{error}</p>}
         {startsStage && (

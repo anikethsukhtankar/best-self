@@ -107,3 +107,12 @@ test('rest lengths: a week, two weeks, a month (clamped to its last day), or ope
   assert.equal(restUntil('2026-12-15', 'month'), '2027-01-15');
   assert.equal(restUntil('2026-10-26', 'open'), null);
 });
+
+test('a step always starts a new stage, even when only the words grow', async () => {
+  const { changeHabit, migrateHabit } = await import('../src/utils/habits.js');
+  const read = migrateHabit({ id: 'r', text: 'Read 5 pages', recurrence: { type: 'daily' }, createdAt: '2026-09-01T00:00:00.000Z', next: 'Read 15 pages', growth: { snoozeUntil: 'soon' } });
+  assert.equal(read.next, 'Read 15 pages');
+  assert.equal(read.growth, undefined);
+  assert.equal(changeHabit(read, { text: 'Read 15 pages' }, '2026-10-27').stages.length, 1);
+  assert.equal(changeHabit(read, { text: 'Read 15 pages' }, '2026-10-27', { step: true }).stages.length, 2);
+});
