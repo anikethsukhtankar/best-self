@@ -443,6 +443,14 @@ function Dashboard({ user, signOut, onDarkMode }) {
     save({ ...state, habits: state.habits.map(h => h.id === id ? { ...h, growth: { ...(h.growth || {}), snoozeUntil: until } } : h) });
   }, [state, save]);
 
+  // A month's chapter in the person's own words; an empty line gives the month its own line back.
+  const setChapter = useCallback((monthKey, text) => {
+    const chapters = { ...(state.chapters || {}) };
+    if (text) chapters[monthKey] = text;
+    else delete chapters[monthKey];
+    save({ ...state, chapters });
+  }, [state, save]);
+
   const restoreHabit = useCallback(id => {
     save({ ...state, habits: state.habits.map(h => {
       if (h.id !== id) return h;
@@ -515,6 +523,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
               habits={state.habits}
               completions={completions}
               threshold={state.settings.completionThreshold}
+              chapters={state.chapters}
             />
           </div>
         )}
@@ -594,7 +603,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} />
           </>
         )}
 
@@ -757,7 +766,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} />
           </>
         )}
 
@@ -801,6 +810,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           habits={state.habits}
           completions={completions}
           threshold={state.settings.completionThreshold}
+          chapters={state.chapters}
         />
       </div>
     </div>

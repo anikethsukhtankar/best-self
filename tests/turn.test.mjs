@@ -85,6 +85,7 @@ test('chapter: roman numeral and a line from the strongest block; thin months ar
   const completions = {};
   for (let d = 1; d <= 16; d++) completions[`2026-10-${String(d).padStart(2, '0')}`] = { a: true, b: d % 2 === 0 };
   const ch = monthChapter(habits, completions, 0.5, oct, today);
-  assert.deepEqual(ch, { numeral: 'X', line: 'in which the mornings held' });
+  assert.deepEqual(ch, { numeral: 'X', line: 'in which the mornings were kept' }); // October 2026: variant 1
+  assert.equal(chapterLine({ morning: 1 }, 1, 2), 'in which the day began early');
   assert.equal(monthChapter(habits, {}, 0.5, new Date(2026, 11, 1), today).line, 'not yet written');
 });

@@ -103,18 +103,20 @@ export const roman = (n) => {
 
 // One quiet line for the month, from its strongest time block. A thin month is quiet, never failed.
 const LINES = {
-  morning: 'in which the mornings held',
-  prework: 'in which the work began well',
-  afternoon: 'in which the afternoons held',
-  postwork: 'in which the evenings opened',
-  evening: 'in which the nights were kept',
+  morning: ['in which the mornings held', 'in which the mornings were kept', 'in which the day began early'],
+  prework: ['in which the work began well', 'in which the desk was ready', 'in which the work was prepared for'],
+  afternoon: ['in which the afternoons held', 'in which the afternoons were kept', 'in which the middle of the day held'],
+  postwork: ['in which the evenings opened', 'in which the work was set down', 'in which the evenings were used well'],
+  evening: ['in which the nights were kept', 'in which the evenings closed well', 'in which the days ended gently'],
 };
-export const chapterLine = (rates, monthShare) => {
+// `variant` picks among a block's lines so consecutive months do not all say the same thing.
+export const chapterLine = (rates, monthShare, variant = 0) => {
   if (monthShare === null) return 'not yet written';
   if (monthShare < 0.3) return 'in which the days were quiet';
   let best = null;
   for (const [block, rate] of Object.entries(rates)) if (rate !== null && (best === null || rate > rates[best])) best = block;
-  return (best && LINES[best]) || 'in which the days were kept';
+  const lines = best && LINES[best];
+  return lines ? lines[variant % lines.length] : 'in which the days were kept';
 };
 
 // The month's chapter: its roman numeral and one line. Rates are per time block over the days of
@@ -143,5 +145,5 @@ export const monthChapter = (habits, completions, threshold, viewMonth, today = 
   }
   const rates = Object.fromEntries(Object.entries(totals).map(([b, t]) => [b, t.total ? t.done / t.total : null]));
   const share = scheduledDays ? completeDays / scheduledDays : null;
-  return { numeral: roman(month + 1), line: chapterLine(rates, share) };
+  return { numeral: roman(month + 1), line: chapterLine(rates, share, month + year) };
 };

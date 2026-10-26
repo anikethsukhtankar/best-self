@@ -98,6 +98,9 @@ export const sanitizeData = (data) => {
     habits: list(src.habits).map((h) => migrateHabit(h, completions)),
     todos: list(src.todos),
     completions,
+    // Chapter lines written in the person's own words, by 'YYYY-MM'. Kept as typed.
+    chapters: Object.fromEntries(Object.entries(src.chapters && typeof src.chapters === 'object' ? src.chapters : {})
+      .filter(([k, v]) => /^\d{4}-\d{2}$/.test(k) && typeof v === 'string' && v.trim())),
     settings: { ...DEFAULT_STATE.settings, ...(src.settings || {}) },
   };
 };

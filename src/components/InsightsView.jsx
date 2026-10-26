@@ -4,6 +4,7 @@ import { currentStreak, bestStreak, weekPercent } from '../utils/insights';
 import { YearGrid } from './YearGrid';
 import { TrendLine } from './TrendLine';
 import { HabitStairs } from './Staircase';
+import { Almanac } from './Almanac';
 
 // Stats Row: three thin numbers
 export function StatsRow({ habits, completions, threshold }) {
@@ -32,8 +33,9 @@ export function StatsRow({ habits, completions, threshold }) {
   );
 }
 
-// Insights, top to bottom: three thin numbers, the year, the trend, then each habit's staircase.
-export function InsightsView({ habits, completions, threshold, blockOrder }) {
+// Insights, top to bottom: three thin numbers, the year, the trend, each habit's staircase, and
+// the almanac of the year.
+export function InsightsView({ habits, completions, threshold, blockOrder, chapters, onChapter }) {
   const { S } = useTheme();
   return (
     <>
@@ -44,6 +46,7 @@ export function InsightsView({ habits, completions, threshold, blockOrder }) {
       <YearGrid habits={habits} completions={completions} threshold={threshold} />
       <TrendLine habits={habits} completions={completions} />
       <HabitStairs habits={habits} completions={completions} threshold={threshold} blockOrder={blockOrder} />
+      <Almanac habits={habits} completions={completions} threshold={threshold} chapters={chapters} onChapter={onChapter} />
     </>
   );
 }

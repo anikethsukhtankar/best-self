@@ -17,7 +17,7 @@ const pts = (list) => list.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).jo
 // day and an X through every completed one. Drawn as one SVG in CSS pixels, sized to its column.
 // Press the month name and it turns: the plan tips into an isometric elevation of the month,
 // complete days standing as blocks. Tap to turn and tap again to settle, or hold to look.
-export function StendigCalendar({ selectedDate, onSelect, habits, completions, threshold }) {
+export function StendigCalendar({ selectedDate, onSelect, habits, completions, threshold, chapters }) {
   const { theme, S } = useTheme();
   const uid = useId().replace(/:/g, '');
   const [viewMonth, setViewMonth] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
@@ -97,10 +97,11 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
     });
   }, [days, habits, completions, threshold, todayKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const kinds = useMemo(() => dayKinds(days, viewMonth, status, new Date()), [days, viewMonth, status]);
-  const chapter = useMemo(
-    () => monthChapter(habits, completions, threshold, viewMonth, new Date()),
-    [habits, completions, threshold, viewMonth],
-  );
+  const chapter = useMemo(() => {
+    const own = chapters?.[`${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, '0')}`];
+    const given = monthChapter(habits, completions, threshold, viewMonth, new Date());
+    return own ? { ...given, line: own } : given;
+  }, [habits, completions, threshold, viewMonth, chapters]);
 
   const L = width > 0 ? gridLayout(width, window.devicePixelRatio || 1) : null;
   const shift = (delta) => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + delta, 1));
