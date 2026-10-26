@@ -195,12 +195,13 @@ function LeftPanel({ habits, completions, selectedDate, settings }) {
 }
 
 // Settings Modal Component
-function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, fullState, onImport, onExport, user, onSignOut, syncing, lastSynced, sample, onSample, onLeaveSample }) {
+function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, fullState, onImport, onExport, onStartOver, user, onSignOut, syncing, lastSynced, sample, onSample, onLeaveSample }) {
   const { theme, S } = useTheme();
   const [threshold, setThreshold] = useState(settings.completionThreshold);
   const [darkMode, setDarkMode] = useState(settings.darkMode || false);
   const [offerSteps, setOfferSteps] = useState(settings.offerSteps !== false);
   const [importStatus, setImportStatus] = useState(null);
+  const [confirmStartOver, setConfirmStartOver] = useState(false);
   const [blocks, setBlocks] = useState({
     labels: { ...TIME_BLOCK_LABELS, ...(settings.timeBlockLabels || {}) },
     order: settings.timeBlockOrder || TIME_BLOCKS,
@@ -221,6 +222,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
   }, []);
 
   const todayHabits = getHabitsForDay(habits, new Date());
+  const settingsLink = { border: 'none', background: 'none', padding: '6px 0', fontFamily: 'inherit', fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' };
   const required = Math.ceil(todayHabits.length * threshold);
   const habitCount = habits.filter(h => !h.archivedAt).length;
   const completionDays = Object.keys(fullState.completions || {}).length;
@@ -382,6 +384,24 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
               {importStatus.message}
             </p>
           )}
+          {!sample && (
+            // Starting over clears everything, so it asks first, here on the page.
+            <div style={{ marginTop: 24 }}>
+              {confirmStartOver ? (
+                <>
+                  <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 12, color: theme.text }}>
+                    Clear every habit, check and task {user ? 'on this device and in your account' : 'on this device'}, and begin again with the core list? Export first to keep a copy.
+                  </p>
+                  <div style={{ display: 'flex', gap: 32 }}>
+                    <button style={{ ...settingsLink, color: theme.text, textDecoration: 'underline', textUnderlineOffset: 5 }} onClick={onStartOver}>Clear and start over</button>
+                    <button style={{ ...settingsLink, color: theme.textMuted }} onClick={() => setConfirmStartOver(false)}>Keep everything</button>
+                  </div>
+                </>
+              ) : (
+                <button style={{ ...settingsLink, color: theme.textMuted }} onClick={() => setConfirmStartOver(true)}>Start over</button>
+              )}
+            </div>
+          )}
         </div>
 
         <div style={S.settingsSection}>
@@ -415,7 +435,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 // Main Dashboard Component
 function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onSample, onLeaveSample }) {
   const isMobile = useIsMobile();
-  const { state, save, importData, exportData, syncing, lastSynced } = useData(user, { sample, darkMode: startDark });
+  const { state, save, importData, exportData, startOver: startOverData, syncing, lastSynced } = useData(user, { sample, darkMode: startDark });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
@@ -528,6 +548,14 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
   }, [state, save]);
 
   const closeEditor = useCallback(() => setEditor(null), []);
+  // Start over lands on today's Today, with the core list.
+  const startOver = () => {
+    startOverData();
+    setShowSettings(false);
+    setPage(null);
+    setTab('today');
+    setSelectedDate(new Date());
+  };
   const openPage = useCallback((id, from) => {
     setPage({ id, from });
     setTab('habit');
@@ -736,6 +764,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             fullState={state}
             onImport={importData}
             onExport={exportData}
+            onStartOver={startOver}
             user={user}
             onSignOut={signOut}
             syncing={syncing}
@@ -900,6 +929,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             fullState={state}
             onImport={importData}
             onExport={exportData}
+            onStartOver={startOver}
             user={user}
             onSignOut={signOut}
             syncing={syncing}

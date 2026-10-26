@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { loadFirebase, isFirebaseConfigured } from '../firebase';
-import { STORAGE_KEY, DEFAULT_STATE } from '../utils/constants';
+import { STORAGE_KEY, DEFAULT_STATE, seedHabits } from '../utils/constants';
 import { sanitizeData } from '../utils/habits';
 import { sampleState } from '../utils/sample';
 
@@ -9,11 +9,13 @@ export const hasStoredState = () => {
   try { return localStorage.getItem(STORAGE_KEY) !== null; } catch { return false; }
 };
 
+// The core list, beginning today, with no checks and no tasks yet.
+const freshState = ({ darkMode = false } = {}) => sanitizeData({ ...DEFAULT_STATE, habits: seedHabits(), settings: { ...DEFAULT_STATE.settings, darkMode } });
+
 // Start this device with the default habits, stored right away so the welcome does not return.
 export const beginFresh = ({ darkMode = false } = {}) => {
   if (hasStoredState()) return; // never over what is already here
-  const fresh = sanitizeData({ ...DEFAULT_STATE, settings: { ...DEFAULT_STATE.settings, darkMode } });
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { /* private mode: it lives in memory */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(freshState({ darkMode }))); } catch { /* private mode: it lives in memory */ }
 };
 
 // `sample`: a year of sample history held in memory only. Nothing is read from or written to
@@ -149,6 +151,9 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     }
   }, [user, sample]);
 
+  // Begin again with the core list: every habit, check and task goes, the light or dark choice stays.
+  const startOver = useCallback(() => save(freshState({ darkMode: Boolean(state?.settings?.darkMode) })), [save, state]);
+
   // Import data (for backup restore)
   const importData = useCallback(async (data) => {
     const sanitized = sanitizeData(data);
@@ -188,6 +193,7 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     save,
     importData,
     exportData,
+    startOver,
     syncing,
     lastSynced,
     isCloudEnabled: !!user

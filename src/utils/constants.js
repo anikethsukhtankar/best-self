@@ -43,7 +43,7 @@ export const createHabit = (text, timeBlock, recurrence, durationMinutes, sortOr
 // Sunday is a rest day. Minutes only where the habit names them.
 const MON_TO_SAT = { type: 'specific_days', days: [1, 2, 3, 4, 5, 6] };
 const on = (...days) => ({ type: 'specific_days', days });
-export const SEED_HABITS = [
+export const seedHabits = () => [
   createHabit('Cycling', 'morning', on(1, 3, 5), null, 0),
   createHabit('Meditate', 'morning', MON_TO_SAT, null, 1),
   createHabit('Rest Day', 'morning', on(0), null, 2),
@@ -57,6 +57,7 @@ export const SEED_HABITS = [
   createHabit('Drink 3L Water', 'evening', MON_TO_SAT, null, 1),
   createHabit('Healthy Diet', 'evening', MON_TO_SAT, null, 2),
 ];
+export const SEED_HABITS = seedHabits();
 
 // Default state
 export const DEFAULT_STATE = {
