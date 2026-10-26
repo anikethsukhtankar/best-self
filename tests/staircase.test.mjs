@@ -63,3 +63,16 @@ test('roots carry across steps: a step up never uproots, a bad month never uproo
   assert.equal(s.rooted, 'second nature');
   assert.equal(s.rootedSince, '2026-07-05');
 });
+
+test('lifetime: times kept and minutes given only grow, each kept day at its own stage', async () => {
+  const { lifetime } = await import('../src/utils/staircase.js');
+  const today = new Date(2026, 9, 26, 12);
+  const h = { id: 'm', text: 'Meditate 5 min', stages: [
+    { from: '2026-10-01', text: 'Meditate 2 min', durationMinutes: 2, recurrence: { type: 'daily' } },
+    { from: '2026-10-20', text: 'Meditate 5 min', durationMinutes: 5, recurrence: { type: 'daily' } },
+  ] };
+  const c = { '2026-10-02': { m: true }, '2026-10-03': { m: true }, '2026-10-21': { m: true }, '2026-10-27': { m: true } };
+  const life = lifetime(h, c, today);
+  assert.deepEqual([life.times, life.minutes, life.since], [3, 9, '2026-10-01']);
+  assert.deepEqual(life.stages.map((s) => [s.kept, s.due]), [[2, 19], [1, 6]]);
+});

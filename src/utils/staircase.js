@@ -131,3 +131,41 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
   const root = rootFrom(inForce);
   return { columns, treads, monthly, maxLevel: Math.max(0, ...levels), times, rooted: root.word, rootedSince: root.since };
 };
+
+// A habit's life in numbers that only grow: times kept, minutes given (each kept day counts the
+// minutes of the stage it was kept under), when it began, and each stage with its own record.
+export const lifetime = (habit, completions, today = new Date()) => {
+  const todayKey = formatDateKey(today);
+  const stages = stagesOf(habit);
+  const first = stages[0].from !== '0000-01-01' ? stages[0].from : null;
+  let times = 0;
+  let minutes = 0;
+  let earliest = null;
+  const perStage = stages.map(() => ({ kept: 0, due: 0 }));
+  const stageIndexAt = (dk) => {
+    let at = -1;
+    for (let i = 0; i < stages.length && stages[i].from <= dk; i++) at = i;
+    return at;
+  };
+  for (const [dk, day] of Object.entries(completions)) {
+    if (!day?.[habit.id] || dk > todayKey) continue;
+    times++;
+    if (!earliest || dk < earliest) earliest = dk;
+    const i = stageIndexAt(dk);
+    if (i >= 0) { minutes += stages[i].durationMinutes || 0; perStage[i].kept++; }
+  }
+  // Times each stage was due, up to today (an unchecked today is still open).
+  const start = first || earliest;
+  if (start) {
+    const archivedKey = habit.archivedAt ? formatDateKey(habit.archivedAt) : null;
+    for (let d = parseDateKey(start); formatDateKey(d) <= todayKey; d = addDays(d, 1)) {
+      const dk = formatDateKey(d);
+      if (archivedKey && dk >= archivedKey) break;
+      if (!isHabitScheduledForDay(habit, d)) continue;
+      if (dk === todayKey && !completions[dk]?.[habit.id]) continue;
+      const i = stageIndexAt(dk);
+      if (i >= 0) perStage[i].due++;
+    }
+  }
+  return { times, minutes, since: first && earliest ? (first < earliest ? first : earliest) : first || earliest, stages: stages.map((st, i) => ({ ...st, ...perStage[i] })) };
+};

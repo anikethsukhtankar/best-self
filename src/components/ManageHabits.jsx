@@ -4,7 +4,7 @@ import { formatDateKey } from '../utils/date';
 import { shortDate } from '../utils/todos';
 
 // Every habit: active ones grouped by time block, resting ones next, archived ones on a shelf below.
-export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit, onArchive, onRestore, onResume }) {
+export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit, onArchive, onRestore, onResume, onOpen }) {
   const { theme, S } = useTheme();
   const todayKey = formatDateKey(new Date());
   const resting = habits.filter((h) => !h.archivedAt && isResting(h, todayKey));
@@ -15,6 +15,10 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
     return st.until ? `until ${shortDate(st.until)}` : 'until you bring it back';
   };
   const linkStyle = { ...S.tab, fontSize: 12, color: theme.textMuted, marginLeft: 16 };
+  // A habit's name opens its own page.
+  const name = (h, text, style) => (
+    <button style={{ ...style, border: 'none', background: 'none', padding: 0, fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => onOpen(h.id)}>{text}</button>
+  );
 
   return (
     <div>
@@ -36,7 +40,7 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
               return (
               <div key={h.id} style={S.manageHabitRow}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={S.manageHabitText}>{now.text}</div>
+                  <div>{name(h, now.text, S.manageHabitText)}</div>
                   <div style={{ ...S.manageHabitMeta, marginLeft: 0, marginTop: 2, fontSize: 12 }}>
                     {describeRecurrence(now)}{now.durationMinutes ? ` · ${now.durationMinutes} min` : ''}{now !== h && h.text !== now.text ? ` · tomorrow: ${h.text}` : ''}
                   </div>
@@ -60,7 +64,7 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
           {resting.map((h) => (
             <div key={h.id} style={S.manageHabitRow}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={S.manageHabitText}>{h.text}</div>
+                <div>{name(h, h.text, S.manageHabitText)}</div>
                 <div style={{ ...S.manageHabitMeta, marginLeft: 0, marginTop: 2, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
                   {labels[h.timeBlock] || h.timeBlock} · resting {restingUntil(h)}
                 </div>
@@ -78,7 +82,7 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
           {archived.map((h) => (
             <div key={h.id} style={S.manageHabitRow}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ ...S.manageHabitText, color: theme.textMuted }}>{h.text}</div>
+                <div>{name(h, h.text, { ...S.manageHabitText, color: theme.textMuted })}</div>
                 <div style={{ ...S.manageHabitMeta, marginLeft: 0, marginTop: 2, fontSize: 12 }}>
                   {labels[h.timeBlock] || h.timeBlock} · {describeRecurrence(h)} · history kept
                 </div>

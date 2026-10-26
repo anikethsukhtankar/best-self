@@ -15,6 +15,7 @@ import { HabitBlocks } from './components/HabitBlocks';
 import { TaskList } from './components/TaskList';
 import { InsightsView } from './components/InsightsView';
 import { NextStep } from './components/NextStep';
+import { HabitPage } from './components/HabitPage';
 import { todaysOffer } from './utils/growth';
 import {
   TIME_BLOCKS, TIME_BLOCK_LABELS, TIME_BLOCK_HOURS,
@@ -407,6 +408,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
   const [showCalendar, setShowCalendar] = useState(false);
   const [navHover, setNavHover] = useState(null);
   const [editor, setEditor] = useState(null); // null | { habit } | { defaultBlock }
+  const [page, setPage] = useState(null); // a habit's own page: { id, from: 'insights' | 'manage' }
 
   const { theme, S } = useTheme();
 
@@ -503,6 +505,11 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
   }, [state, save]);
 
   const closeEditor = useCallback(() => setEditor(null), []);
+  const openPage = useCallback((id, from) => {
+    setPage({ id, from });
+    setTab('habit');
+    window.scrollTo(0, 0);
+  }, []);
 
   const darkMode = Boolean(state?.settings?.darkMode);
   useEffect(() => { if (onDarkMode) onDarkMode(darkMode); }, [darkMode, onDarkMode]);
@@ -573,7 +580,17 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
           </div>
         )}
 
-        {tab === 'manage' ? (
+        {tab === 'habit' && page && state.habits.some(h => h.id === page.id) ? (
+          <HabitPage
+            habit={state.habits.find(h => h.id === page.id)}
+            completions={completions}
+            threshold={state.settings.completionThreshold}
+            labels={labels}
+            backLabel={page.from === 'manage' ? 'Manage habits' : 'Insights'}
+            onBack={() => setTab(page.from)}
+            onEdit={h => setEditor({ habit: h })}
+          />
+        ) : tab === 'manage' ? (
           <ManageHabits
             habits={state.habits}
             labels={labels}
@@ -584,6 +601,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             onArchive={archiveHabit}
             onRestore={restoreHabitFor}
             onResume={resumeHabitFor}
+            onOpen={id => openPage(id, 'manage')}
           />
         ) : tab === 'today' ? (
           <>
@@ -648,7 +666,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} onOpen={id => openPage(id, 'insights')} />
           </>
         )}
 
@@ -740,7 +758,17 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
           </button>
         </div>
 
-        {tab === 'manage' ? (
+        {tab === 'habit' && page && state.habits.some(h => h.id === page.id) ? (
+          <HabitPage
+            habit={state.habits.find(h => h.id === page.id)}
+            completions={completions}
+            threshold={state.settings.completionThreshold}
+            labels={labels}
+            backLabel={page.from === 'manage' ? 'Manage habits' : 'Insights'}
+            onBack={() => setTab(page.from)}
+            onEdit={h => setEditor({ habit: h })}
+          />
+        ) : tab === 'manage' ? (
           <ManageHabits
             habits={state.habits}
             labels={labels}
@@ -751,6 +779,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
             onArchive={archiveHabit}
             onRestore={restoreHabitFor}
             onResume={resumeHabitFor}
+            onOpen={id => openPage(id, 'manage')}
           />
         ) : tab === 'today' ? (
           <>
@@ -817,7 +846,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} chapters={state.chapters} onChapter={setChapter} onOpen={id => openPage(id, 'insights')} />
           </>
         )}
 

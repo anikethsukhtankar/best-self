@@ -8,21 +8,23 @@ import { formatDateKey, parseDateKey, formatDate } from '../utils/date';
 import { isResting, stageAt } from '../utils/habits';
 import { TIME_BLOCKS } from '../utils/constants';
 
-const BASE = 16; // the lowest tread sits this far above the ground line
-const HEADROOM = 9; // room above the highest tread for the traveller
+// Row size: the lowest tread 16px above the ground line, 8px a step, at most 64px tall.
+// Page size (a habit's own page): 32px, 18px a step, at most 160px.
+const SIZES = { row: { base: 16, headroom: 9, step: 8, max: 64, depth: [5, 3] }, page: { base: 32, headroom: 14, step: 18, max: 160, depth: [8, 5] } };
 
 const weekLabel = (start, monthly) => formatDate(parseDateKey(start), monthly ? 'monthYear' : 'monthDay');
 
 // One habit's life: weekly columns of stone under a tread that rises with every step up.
-export function Stair({ habit, s, onHover, height }) {
+export function Stair({ habit, s, onHover, size = 'row' }) {
+  const { base: BASE, headroom: HEADROOM, step, max, depth: [dx, dy] } = SIZES[size];
   const { theme } = useTheme();
   const uid = useId().replace(/:/g, '');
   const [ref, width] = useWidth(600);
   const n = s.columns.length;
   const col = width / n;
   const gutter = col >= 5 ? 1 : 0;
-  // Each step up rises 8px; a habit with many steps compresses so the figure stays under 64px.
-  const rise = s.maxLevel ? Math.min(height ? 16 : 8, ((height || 64) - BASE - HEADROOM) / s.maxLevel) : 0;
+  // Each step up rises one step; a habit with many steps compresses so the figure stays under max.
+  const rise = s.maxLevel ? Math.min(step, (max - BASE - HEADROOM) / s.maxLevel) : 0;
   const H = BASE + HEADROOM + s.maxLevel * rise;
   const y = (level) => H - BASE - level * rise;
   const hatch = `st-${uid}`;
@@ -38,7 +40,7 @@ export function Stair({ habit, s, onHover, height }) {
     const prev = s.treads[k - 1];
     if (prev && !prev.before && prev.level !== t.level) profile.push(<line key={`r${k}`} x1={x0} x2={x0} y1={y(prev.level)} y2={ty} stroke={theme.accent} strokeWidth={1} />);
     profile.push(<line key={`t${k}`} x1={x0} x2={x1} y1={ty} y2={ty} stroke={theme.accent} strokeWidth={1} strokeDasharray={t.rest ? '2 3' : undefined} />);
-    depth.push(<line key={`d${k}`} x1={x0 + 5} x2={Math.min(width, x1 + 5)} y1={ty - 3} y2={ty - 3} stroke={theme.textFaintest} strokeWidth={1} />);
+    depth.push(<line key={`d${k}`} x1={x0 + dx} x2={Math.min(width, x1 + dx)} y1={ty - dy} y2={ty - dy} stroke={theme.textFaintest} strokeWidth={1} />);
   });
 
   return (

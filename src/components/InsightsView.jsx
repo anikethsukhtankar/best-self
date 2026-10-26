@@ -35,7 +35,7 @@ export function StatsRow({ habits, completions, threshold }) {
 
 // Insights, top to bottom: three thin numbers, the year, the trend, each habit's staircase, and
 // the almanac of the year.
-export function InsightsView({ habits, completions, threshold, blockOrder, chapters, onChapter }) {
+export function InsightsView({ habits, completions, threshold, blockOrder, chapters, onChapter, onOpen }) {
   const { S } = useTheme();
   return (
     <>
@@ -45,7 +45,7 @@ export function InsightsView({ habits, completions, threshold, blockOrder, chapt
       <StatsRow habits={habits} completions={completions} threshold={threshold} />
       <YearGrid habits={habits} completions={completions} threshold={threshold} />
       <TrendLine habits={habits} completions={completions} />
-      <HabitStairs habits={habits} completions={completions} threshold={threshold} blockOrder={blockOrder} />
+      <HabitStairs habits={habits} completions={completions} threshold={threshold} blockOrder={blockOrder} onOpen={onOpen} />
       <Almanac habits={habits} completions={completions} threshold={threshold} chapters={chapters} onChapter={onChapter} />
     </>
   );
