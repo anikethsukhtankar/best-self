@@ -10,8 +10,9 @@ export const hasStoredState = () => {
 };
 
 // Start this device with the default habits, stored right away so the welcome does not return.
-export const beginFresh = () => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeData(DEFAULT_STATE))); } catch { /* private mode: it lives in memory */ }
+export const beginFresh = ({ darkMode = false } = {}) => {
+  const fresh = sanitizeData({ ...DEFAULT_STATE, settings: { ...DEFAULT_STATE.settings, darkMode } });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { /* private mode: it lives in memory */ }
 };
 
 // `sample`: a year of sample history held in memory only. Nothing is read from or written to

@@ -860,13 +860,15 @@ export default function App() {
   const [skipAuth, setSkipAuth] = useState(false);
   // 'welcome' on a device with nothing stored yet, 'sample' while looking around, else 'real'.
   const [mode, setMode] = useState(() => (hasStoredState() ? 'real' : 'welcome'));
+  // Stored preference first; on a device with nothing stored, follow the system (or host page) theme.
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const stored = localStorage.getItem('best-self-state');
-      return stored ? JSON.parse(stored).settings?.darkMode || false : false;
-    } catch {
-      return false;
-    }
+      if (stored) return JSON.parse(stored).settings?.darkMode || false;
+    } catch { /* fall through to the system theme */ }
+    const host = document.documentElement.getAttribute('data-theme');
+    if (host) return host === 'dark';
+    return Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
   });
 
   if (loading) {
@@ -891,7 +893,7 @@ export default function App() {
   if (!user && mode === 'welcome') {
     return (
       <ThemeProvider darkMode={darkMode}>
-        <Welcome onBegin={() => { beginFresh(); setMode('real'); }} onSample={() => setMode('sample')} />
+        <Welcome onBegin={() => { beginFresh({ darkMode }); setMode('real'); }} onSample={() => setMode('sample')} />
       </ThemeProvider>
     );
   }
