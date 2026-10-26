@@ -119,16 +119,11 @@ export const yearGrid = (habits, completions, threshold, today = new Date(), wee
       else level = 'low';
       cells.push({ dateKey, date, level, percentage: c.percentage, total: c.total, completed: c.completed });
     }
-    const first = cells[0].date;
-    const monthStartsHere = cells.some((cell) => cell.date.getDate() === 1) || w === 0;
-    columns.push({ cells, monthLabel: monthStartsHere ? first.toLocaleDateString(undefined, { month: 'short' }) : null, month: first.getMonth() });
-  }
-  // Only label a month the first time it appears.
-  let last = null;
-  for (const col of columns) {
-    const m = col.cells.find((c) => c.date.getDate() === 1)?.date.getMonth() ?? col.month;
-    if (col.monthLabel && m === last) col.monthLabel = null;
-    if (col.monthLabel) last = m;
+    // A column is labelled with the month whose 1st falls in it; the first column with its own
+    // month, unless a new month begins within the next two columns (the labels would collide).
+    const firstOfMonth = cells.find((cell) => cell.date.getDate() === 1);
+    const labelDate = firstOfMonth ? firstOfMonth.date : w === 0 && cells[0].date.getDate() < 18 ? cells[0].date : null;
+    columns.push({ cells, monthLabel: labelDate ? labelDate.toLocaleDateString(undefined, { month: 'short' }) : null, month: (labelDate || cells[0].date).getMonth() });
   }
   return columns;
 };

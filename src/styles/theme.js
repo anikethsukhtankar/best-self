@@ -42,7 +42,7 @@ export const THEMES = {
 
 // Generate styles based on theme
 export const getStyles = (t) => ({
-  pageWrapper: { display: 'grid', gridTemplateColumns: '280px 1fr 280px', minHeight: '100vh', background: t.bg, color: t.text, fontFamily: "'Instrument Sans', system-ui, sans-serif" },
+  pageWrapper: { display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr) 280px', minHeight: '100vh', background: t.bg, color: t.text, fontFamily: "'Instrument Sans', system-ui, sans-serif" },
   leftPanel: { padding: '48px 32px', borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: t.bg },
   container: { padding: '48px 80px 64px', minHeight: '100vh', background: t.bg, color: t.text, fontFamily: "'Instrument Sans', system-ui, sans-serif" },
   rightPanel: { padding: '48px 32px', borderLeft: `1px solid ${t.border}`, background: t.bg },

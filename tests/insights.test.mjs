@@ -61,3 +61,14 @@ test('year grid ends with this week and levels the days', () => {
   assert.equal(week[1].level, 'low');    // Mon 7
   assert.equal(week[5].level, 'future'); // Fri 11
 });
+
+test('year grid: each month label sits on the column where that month begins', async () => {
+  const { yearGrid } = await import('../src/utils/insights.js');
+  const cols = yearGrid([], {}, 0.8, new Date(2026, 9, 26));
+  const labelled = cols.map((c, i) => [i, c.monthLabel]).filter(([, l]) => l);
+  // Twelve distinct months, each on the column holding its 1st.
+  assert.equal(new Set(labelled.map(([, l]) => l)).size, labelled.length);
+  for (const [i] of labelled.slice(1)) assert.ok(cols[i].cells.some((c) => c.date.getDate() === 1));
+  const jan = cols.findIndex((c) => c.cells.some((d) => d.date.getFullYear() === 2026 && d.date.getMonth() === 0 && d.date.getDate() === 1));
+  assert.equal(cols[jan].monthLabel, new Date(2026, 0, 1).toLocaleDateString(undefined, { month: 'short' }));
+});
