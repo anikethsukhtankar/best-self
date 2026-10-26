@@ -2,7 +2,8 @@
 // Build with `npm run visual`, then open dist-visual/tests/visual/insights.html (add ?dark=1 for dark mode).
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '../../src/hooks/ThemeProvider';
-import { StatsRow, HabitBreakdown } from '../../src/components/InsightsView';
+import { StatsRow } from '../../src/components/InsightsView';
+import { HabitStairs } from '../../src/components/Staircase';
 import { YearGrid } from '../../src/components/YearGrid';
 import { TrendLine } from '../../src/components/TrendLine';
 import { SEED_HABITS } from '../../src/utils/constants';
@@ -32,7 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <StatsRow habits={habits} completions={completions} threshold={0.8} />
       <YearGrid habits={habits} completions={completions} threshold={0.8} />
       <TrendLine habits={habits} completions={completions} />
-      <HabitBreakdown habits={habits} completions={completions} />
+      <HabitStairs habits={habits} completions={completions} threshold={0.8} today={today} />
     </div>
   </ThemeProvider>
 );

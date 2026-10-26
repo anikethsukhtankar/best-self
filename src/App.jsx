@@ -594,7 +594,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} />
           </>
         )}
 
@@ -757,7 +757,7 @@ function Dashboard({ user, signOut, onDarkMode }) {
           </>
         ) : (
           <>
-            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} />
+            <InsightsView habits={state.habits} completions={completions} threshold={state.settings.completionThreshold} blockOrder={state.settings?.timeBlockOrder || TIME_BLOCKS} />
           </>
         )}
 

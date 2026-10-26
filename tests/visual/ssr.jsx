@@ -2,7 +2,8 @@
 // Build: npx vite build --ssr tests/visual/ssr.jsx --outDir dist-ssr   Run: node dist-ssr/ssr.js
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '../../src/hooks/ThemeProvider';
-import { StatsRow, HabitBreakdown } from '../../src/components/InsightsView';
+import { StatsRow } from '../../src/components/InsightsView';
+import { HabitStairs } from '../../src/components/Staircase';
 import { YearGrid } from '../../src/components/YearGrid';
 import { TrendLine } from '../../src/components/TrendLine';
 import { SEED_HABITS } from '../../src/utils/constants';
@@ -28,7 +29,7 @@ const html = renderToStaticMarkup(
     <StatsRow habits={habits} completions={completions} threshold={0.8} />
     <YearGrid habits={habits} completions={completions} threshold={0.8} today={today} />
     <TrendLine habits={habits} completions={completions} today={today} />
-    <HabitBreakdown habits={habits} completions={completions} />
+    <HabitStairs habits={habits} completions={completions} threshold={0.8} today={today} />
   </ThemeProvider>
 );
 const count = (re) => (html.match(re) || []).length;
@@ -37,9 +38,10 @@ const report = {
   gridCells: count(/title="[^"]*(nothing scheduled|%)/g),
   monthLabels: count(/position:absolute;left:\d+px">[A-Z][a-z]{2}</g),
   trendPaths: count(/<path d="M[^"]*C/g),
-  breakdownRows: count(/-day streak|no current streak|not scheduled/g),
+  stairRows: count(/\d+ times?( ·|<\/span>)/g),
+  stairFigures: count(/role="img" aria-label="[^"]*times since it began/g),
   statLabels: ['Day streak', 'Best streak', 'This week'].map((l) => html.includes(l)),
 };
 console.log(JSON.stringify(report));
-if (report.gridCells < 300 || report.trendPaths < 1 || report.breakdownRows < 5 || report.statLabels.includes(false)) { throw new Error('SMOKE FAILED: ' + JSON.stringify(report)); }
+if (report.gridCells < 300 || report.trendPaths < 1 || report.stairRows < 5 || report.stairFigures < 5 || report.statLabels.includes(false)) { throw new Error('SMOKE FAILED: ' + JSON.stringify(report)); }
 console.log('smoke ok');

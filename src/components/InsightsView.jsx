@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { currentStreak, bestStreak, weekPercent, habitBreakdown } from '../utils/insights';
+import { currentStreak, bestStreak, weekPercent } from '../utils/insights';
 import { YearGrid } from './YearGrid';
 import { TrendLine } from './TrendLine';
+import { HabitStairs } from './Staircase';
 
 // Stats Row: three thin numbers
 export function StatsRow({ habits, completions, threshold }) {
@@ -31,37 +32,8 @@ export function StatsRow({ habits, completions, threshold }) {
   );
 }
 
-// Habit Breakdown: worst first, so what needs attention is at the top
-export function HabitBreakdown({ habits, completions }) {
-  const { theme, S } = useTheme();
-  const rows = useMemo(() => habitBreakdown(habits, completions, 30, new Date()), [habits, completions]);
-  if (rows.length === 0) return null;
-
-  return (
-    <div style={S.breakdownSection}>
-      <div style={S.sectionLabel}>Habits · 30 days · worst first</div>
-      {rows.map(({ habit, rate, streak, scheduled }) => (
-        <div key={habit.id} style={{ padding: '14px 0', borderBottom: `1px solid ${theme.borderLight}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-            <span style={{ fontSize: 14, color: theme.text }}>{habit.text}</span>
-            <span style={{ fontSize: 13, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-              {rate === null ? '–' : `${Math.round(rate * 100)}%`}
-            </span>
-          </div>
-          <div style={{ height: 2, background: theme.border, marginTop: 8 }}>
-            <div style={{ height: '100%', width: `${Math.round((rate || 0) * 100)}%`, background: theme.accent }} />
-          </div>
-          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>
-            {scheduled === 0 ? 'not scheduled in the last 30 days' : streak > 0 ? `${streak}-day streak` : 'no current streak'}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Insights, top to bottom: three thin numbers, the year, the trend, then each habit.
-export function InsightsView({ habits, completions, threshold }) {
+// Insights, top to bottom: three thin numbers, the year, the trend, then each habit's staircase.
+export function InsightsView({ habits, completions, threshold, blockOrder }) {
   const { S } = useTheme();
   return (
     <>
@@ -71,7 +43,7 @@ export function InsightsView({ habits, completions, threshold }) {
       <StatsRow habits={habits} completions={completions} threshold={threshold} />
       <YearGrid habits={habits} completions={completions} threshold={threshold} />
       <TrendLine habits={habits} completions={completions} />
-      <HabitBreakdown habits={habits} completions={completions} />
+      <HabitStairs habits={habits} completions={completions} threshold={threshold} blockOrder={blockOrder} />
     </>
   );
 }
