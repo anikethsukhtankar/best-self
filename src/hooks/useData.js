@@ -11,6 +11,7 @@ export const hasStoredState = () => {
 
 // Start this device with the default habits, stored right away so the welcome does not return.
 export const beginFresh = ({ darkMode = false } = {}) => {
+  if (hasStoredState()) return; // never over what is already here
   const fresh = sanitizeData({ ...DEFAULT_STATE, settings: { ...DEFAULT_STATE.settings, darkMode } });
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { /* private mode: it lives in memory */ }
 };

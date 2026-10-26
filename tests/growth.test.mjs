@@ -70,7 +70,9 @@ test('weekly habits need eight times, and the offer for today picks the readiest
 });
 
 test('held for, in words', () => {
-  assert.deepEqual([10, 21, 45, 70, 400, 800].map(heldFor), ['10 days', 'three weeks', 'six weeks', 'two months', 'a year', 'two years']);
+  assert.deepEqual([10, 21, 45, 70, 400, 800].map(heldFor), ['a week', 'three weeks', 'six weeks', 'two months', 'a year', 'two years']);
+  assert.equal(heldFor(3), 'a few days');
+  assert.ok([3, 10, 21, 45, 70, 200, 400, 800, 5000].map(heldFor).every((w) => !/\d/.test(w)));
 });
 
 test('held for: back to the last double miss; and one step at a time', async () => {
@@ -92,4 +94,15 @@ test('two hours is the top of the ladder, and Today stays quiet after an answer'
   assert.equal(growthOffer({ ...long, next: 'Ride a century' }, record(30), today).proposal.text, 'Ride a century');
   assert.equal(todaysOffer([habit()], record(30), today, { quietUntil: '2026-11-01' }), null);
   assert.equal(todaysOffer([habit()], record(30), today, { quietUntil: '2026-10-26' }).habit.id, 'm');
+});
+
+test('a rest is weather: holding reaches back across it, a change of terms starts over', async () => {
+  const { heldDays } = await import('../src/utils/growth.js');
+  const st = (from, extra = {}) => ({ from, text: 'Meditate 10 min', durationMinutes: 10, recurrence: { type: 'daily' }, ...extra });
+  const rested = habit({ stages: [st('2026-09-01'), st('2026-10-01', { rest: true, until: '2026-10-08' })] });
+  const c = record(55, Array.from({ length: 7 }, (_, i) => 19 + i)); // nothing checked while resting
+  assert.equal(heldDays(rested, c, today), 55);
+  assert.equal(growthOffer(rested, c, today).kind, 'ready');
+  const changed = habit({ stages: [st('2026-09-01'), st('2026-10-01', { rest: true, until: '2026-10-08' }), st('2026-10-08', { text: 'Meditate 12 min', durationMinutes: 12 })] });
+  assert.equal(heldDays(changed, c, today), 18);
 });

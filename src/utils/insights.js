@@ -122,7 +122,9 @@ export const yearGrid = (habits, completions, threshold, today = new Date(), wee
     // A column is labelled with the month whose 1st falls in it; the first column with its own
     // month, unless a new month begins within the next two columns (the labels would collide).
     const firstOfMonth = cells.find((cell) => cell.date.getDate() === 1);
-    const labelDate = firstOfMonth ? firstOfMonth.date : w === 0 && cells[0].date.getDate() < 18 ? cells[0].date : null;
+    const d0 = cells[0].date;
+    const monthLength = new Date(d0.getFullYear(), d0.getMonth() + 1, 0).getDate();
+    const labelDate = firstOfMonth ? firstOfMonth.date : w === 0 && monthLength - d0.getDate() >= 13 ? d0 : null;
     columns.push({ cells, monthLabel: labelDate ? formatDate(labelDate, 'month') : null, month: (labelDate || cells[0].date).getMonth() });
   }
   return columns;

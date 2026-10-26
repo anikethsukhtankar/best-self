@@ -14,18 +14,35 @@ export const lighter = (m) => [...LADDER].reverse().find((v) => v <= m * 0.67) ?
 const renamed = (text, from, to) => (from && text.includes(`${from} min`) ? text.replace(`${from} min`, `${to} min`) : text);
 
 const daysPerWeek = (recurrence) => (recurrence.type === 'daily' ? 7 : recurrence.days.length);
+const sameTerms = (a, b) => a.text === b.text && (a.durationMinutes ?? null) === (b.durationMinutes ?? null) && JSON.stringify(a.recurrence) === JSON.stringify(b.recurrence);
+
+// When the habit's present terms began: the earliest stage with the same terms, reaching back across
+// rests (a rest is weather, not a new beginning), and stopping at the last change of terms.
+export const termsSince = (habit, todayKey) => {
+  const now = stageAt(habit, todayKey);
+  if (!now || now.rest) return null;
+  const stages = stagesOf(habit).filter((st) => st.from <= todayKey);
+  let since = now.from;
+  for (let i = stages.length - 1; i >= 0; i--) {
+    const st = stages[i];
+    if (st.rest) continue;
+    if (!sameTerms(st, now)) break;
+    since = st.from;
+  }
+  return since;
+};
 const ageInDays = (fromKey, todayKey) => Math.round((parseDateKey(todayKey) - parseDateKey(fromKey)) / 864e5);
 
 // The habit's recent scheduled days under its current stage, newest first. Today counts once it
 // is checked; an unchecked today is still open, so it is left out rather than called a miss.
 export const recentOccurrences = (habit, completions, today, max) => {
   const todayKey = formatDateKey(today);
-  const stage = stageAt(habit, todayKey);
+  const since = termsSince(habit, todayKey);
   const out = [];
-  if (!stage) return out;
+  if (!since) return out;
   for (let d = new Date(today), guard = 0; out.length < max && guard < 400; d = addDays(d, -1), guard++) {
     const dk = formatDateKey(d);
-    if (dk < stage.from) break;
+    if (dk < since) break;
     if (!isHabitScheduledForDay(habit, d)) continue;
     const done = Boolean(completions[dk]?.[habit.id]);
     if (dk === todayKey && !done) continue;
@@ -38,13 +55,13 @@ export const recentOccurrences = (habit, completions, today, max) => {
 // two is a break), or to the day its stage began. In days.
 export const heldDays = (habit, completions, today = new Date()) => {
   const todayKey = formatDateKey(today);
-  const stage = stageAt(habit, todayKey);
-  if (!stage || stage.rest) return 0;
+  const start = termsSince(habit, todayKey);
+  if (!start) return 0;
   let since = todayKey;
   let missedLast = false;
   for (let d = new Date(today), guard = 0; guard < 730; d = addDays(d, -1), guard++) {
     const dk = formatDateKey(d);
-    if (dk < stage.from) break;
+    if (dk < start) break;
     if (!isHabitScheduledForDay(habit, d)) continue;
     const done = Boolean(completions[dk]?.[habit.id]);
     if (dk === todayKey && !done) continue;
@@ -67,7 +84,8 @@ export const growthOffer = (habit, completions, today = new Date()) => {
   if (stages[stages.length - 1].from > todayKey) return null; // a step is already set for tomorrow
   const stage = stageAt(habit, todayKey);
   if (!stage || stage.rest) return null;
-  const age = stage.from === '0000-01-01' ? Infinity : ageInDays(stage.from, todayKey);
+  const since = termsSince(habit, todayKey);
+  const age = since === '0000-01-01' ? Infinity : ageInDays(since, todayKey);
   const n = daysPerWeek(stage.recurrence) >= 3 ? 12 : 8;
   const recent = recentOccurrences(habit, completions, today, n);
   const done = recent.filter((o) => o.done).length;
@@ -117,12 +135,14 @@ export const describeStep = (habit, proposal) => {
   return null;
 };
 
-// 'three weeks', 'a month', 'five months': how long a stage has held, in words.
+// 'three weeks', 'a month', 'five months': how long a stage has held, in words (no digits on Today).
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const word = (n) => WORDS[n] || 'many';
 export const heldFor = (days) => {
-  if (days < 14) return `${days} days`;
-  if (days < 60) return `${WORDS[Math.floor(days / 7)] || Math.floor(days / 7)} weeks`;
-  if (days < 365) { const m = Math.floor(days / 30.44); return m === 1 ? 'a month' : `${WORDS[m] || m} months`; }
-  const y = Math.floor(days / 365.25);
-  return y === 1 ? 'a year' : `${WORDS[y] || y} years`;
+  if (days < 7) return 'a few days';
+  if (days < 14) return 'a week';
+  if (days < 56) return `${word(Math.floor(days / 7))} weeks`;
+  if (days < 365) { const m = Math.round(days / 30.44); return m <= 1 ? 'a month' : `${word(m)} months`; }
+  const y = Math.max(1, Math.floor(days / 365.25));
+  return y === 1 ? 'a year' : `${word(y)} years`;
 };

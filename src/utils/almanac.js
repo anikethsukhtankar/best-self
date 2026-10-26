@@ -67,7 +67,7 @@ export const yearEvents = (habits, year) => {
     stages.forEach((st, i) => {
       if (st.from.slice(0, 4) === String(year)) {
         if (st.rest) rests.push({ text: prev?.text ?? h.text, from: st.from, until: st.until || null });
-        else if (prev && i > 0 && stages[i - 1].rest && st.text === prev.text && st.durationMinutes === prev.durationMinutes) {
+        else if (prev && i > 0 && stages[i - 1].rest && st.text === prev.text && st.durationMinutes === prev.durationMinutes && JSON.stringify(st.recurrence) === JSON.stringify(prev.recurrence)) {
           // came back from a rest unchanged: not a step
         } else if (prev) {
           const lighter = levels[i] === levels[stages.indexOf(prev)];

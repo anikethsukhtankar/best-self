@@ -106,3 +106,13 @@ body.dark {
     animation: none;
   }
 }
+
+/* Inline transitions (modals, pills, the strike) have no class to hang a fallback on: with reduced
+   motion every change is instant. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}

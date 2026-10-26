@@ -117,12 +117,22 @@ export const sanitizeData = (data) => {
   };
 };
 
+// A rest whose end date has passed has already resumed (see stageAt). Before changing the ledger
+// after that, write the resumption down, so the change starts from the habit as it came back
+// instead of rewriting the rest and every day since.
+const settled = (habit, fromKey) => {
+  const stages = [...stagesOf(habit)];
+  const last = stages[stages.length - 1];
+  if (last.rest && last.until && last.until <= fromKey) stages.push({ from: last.until, ...fieldsOf(last) });
+  return stages;
+};
+
 // The habit as it should be from `fromKey` on. A change made on the day its stage began (or a
 // rename alone) edits that stage in place; anything else starts a new stage, so the days before
 // keep the habit they actually had. The habit's own fields always mirror the latest stage.
 // `step: true` always starts a new stage: growth is never a rename of the stage before it.
 export const changeHabit = (habit, fields, fromKey, { step = false } = {}) => {
-  const stages = [...stagesOf(habit)];
+  const stages = settled(habit, fromKey);
   const last = stages[stages.length - 1];
   const next = { text: fields.text ?? last.text, durationMinutes: fields.durationMinutes === undefined ? last.durationMinutes : fields.durationMinutes, recurrence: fields.recurrence ?? last.recurrence };
   const renameOnly = next.durationMinutes === last.durationMinutes && JSON.stringify(next.recurrence) === JSON.stringify(last.recurrence);
@@ -137,8 +147,9 @@ export const changeHabit = (habit, fields, fromKey, { step = false } = {}) => {
 // Rest a habit from `fromKey` until `untilKey` (exclusive), or until it is resumed when there is
 // no end. Resting days are not scheduled: they neither break nor extend anything.
 export const restHabit = (habit, fromKey, untilKey = null) => {
-  const stages = stagesOf(habit).filter((st) => st.from < fromKey);
-  const last = stagesOf(habit)[stagesOf(habit).length - 1];
+  const all = settled(habit, fromKey);
+  const stages = all.filter((st) => st.from < fromKey);
+  const last = all[all.length - 1];
   const rest = { from: fromKey, ...fieldsOf(last), rest: true };
   if (untilKey && untilKey > fromKey) rest.until = untilKey;
   return { ...habit, stages: [...stages, rest] };
@@ -148,8 +159,13 @@ export const resumeHabit = (habit, fromKey) => {
   const stages = [...stagesOf(habit)];
   const last = stages[stages.length - 1];
   if (!last.rest) return habit;
-  if (last.from >= fromKey) stages.pop(); // rested and resumed the same day: as if it never rested
-  else stages.push({ from: fromKey, ...fieldsOf(last) });
+  if (last.from >= fromKey) {
+    // Rested and brought back the same day: as if it never rested. If the rest replaced a stage
+    // that began that day, that stage comes back rather than disappearing.
+    const before = stages[stages.length - 2];
+    stages.pop();
+    if (!before || JSON.stringify(fieldsOf(before)) !== JSON.stringify(fieldsOf(last))) stages.push({ from: last.from, ...fieldsOf(last) });
+  } else stages.push({ from: fromKey, ...fieldsOf(last) });
   return { ...habit, stages };
 };
 

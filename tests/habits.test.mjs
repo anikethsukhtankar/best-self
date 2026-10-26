@@ -144,3 +144,23 @@ test('an edit made by an older build (fields only) is kept, never thrown away', 
   // Unchanged data, a pending step for tomorrow, and a rest are all left alone.
   assert.deepEqual(migrateHabit(h, {}, '2026-10-26'), h);
 });
+
+test('a rest that has ended stays in the record when the habit is changed later', async () => {
+  const { restHabit, resumeHabit, changeHabit, migrateHabit, stageAt, isResting } = await import('../src/utils/habits.js');
+  const h = migrateHabit({ id: 'h', text: 'Walk 10 min', durationMinutes: 10, recurrence: { type: 'daily' }, createdAt: '2026-09-01T00:00:00.000Z' });
+  const rested = restHabit(h, '2026-09-10', '2026-09-17');
+  const edited = changeHabit(rested, { text: 'Walk 15 min', durationMinutes: 15 }, '2026-09-20');
+  assert.equal(isResting(edited, '2026-09-12'), true);
+  assert.equal(stageAt(edited, '2026-09-18').text, 'Walk 10 min');
+  assert.equal(stageAt(edited, '2026-09-20').text, 'Walk 15 min');
+  // Resting again after an ended rest starts a new rest; the first one keeps its dates.
+  const again = restHabit(rested, '2026-09-25', '2026-10-02');
+  assert.equal(isResting(again, '2026-09-12'), true);
+  assert.equal(isResting(again, '2026-09-20'), false);
+  assert.equal(isResting(again, '2026-09-26'), true);
+  // Rested and brought back on the day a new stage began: that stage comes back, not the old one.
+  const stepped = changeHabit(h, { text: 'Walk 20 min', durationMinutes: 20 }, '2026-09-10');
+  const undone = resumeHabit(restHabit(stepped, '2026-09-10'), '2026-09-10');
+  assert.deepEqual(undone.stages, stepped.stages);
+  assert.equal(undone.text, stepped.text);
+});

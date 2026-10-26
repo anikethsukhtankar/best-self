@@ -340,9 +340,9 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
         <div style={S.settingsSection}>
           <label style={S.modalLabel}>Data Backup</label>
           <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 16 }}>
-            {habitCount} active habits · {completionDays} days of history
+            {sample ? 'Backups are of your own days. Leave the sample year to export or import.' : `${habitCount} active habits · ${completionDays} days of history`}
           </p>
-          <div style={{ display: 'flex', gap: 12 }}>
+          {!sample && <div style={{ display: 'flex', gap: 12 }}>
             <button
               style={{ ...S.modalButton, flex: 1, marginTop: 0, background: 'transparent', color: theme.text, border: `1px solid ${theme.accent}` }}
               onClick={onExport}
@@ -362,7 +362,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
               style={{ display: 'none' }}
               onChange={handleImport}
             />
-          </div>
+          </div>}
           {importStatus && (
             <p style={{ ...S.settingsNote, marginTop: 12, color: theme.text }}>
               {importStatus.message}
@@ -937,7 +937,8 @@ export default function App() {
     );
   }
 
-  if (!user && mode === 'welcome') {
+  // Checked at render: another tab, or a sign-out, may have left this device with its own days.
+  if (!user && mode === 'welcome' && !hasStoredState()) {
     return (
       <ThemeProvider darkMode={darkMode}>
         <Welcome onBegin={() => { beginFresh({ darkMode }); setMode('real'); }} onSample={() => setMode('sample')} />

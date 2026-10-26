@@ -72,3 +72,11 @@ test('year grid: each month label sits on the column where that month begins', a
   const jan = cols.findIndex((c) => c.cells.some((d) => d.date.getFullYear() === 2026 && d.date.getMonth() === 0 && d.date.getDate() === 1));
   assert.equal(cols[jan].monthLabel, new Date(2026, 0, 1).toLocaleDateString(undefined, { month: 'short' }));
 });
+
+test('year grid: month labels never crowd each other, whatever the day', async () => {
+  const { yearGrid } = await import('../src/utils/insights.js');
+  for (let d = new Date(2026, 0, 1); d.getFullYear() === 2026; d.setDate(d.getDate() + 1)) {
+    const at = yearGrid([], {}, 0.8, new Date(d)).map((c, i) => (c.monthLabel ? i : null)).filter((i) => i !== null);
+    for (let k = 1; k < at.length; k++) assert.ok(at[k] - at[k - 1] >= 2, `${d.toDateString()}: labels at ${at[k - 1]} and ${at[k]}`);
+  }
+});

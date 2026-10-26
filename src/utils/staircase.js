@@ -84,7 +84,7 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
   const inForce = [];
   let cursor = monthly ? new Date(start.getFullYear(), start.getMonth(), 1) : start;
   const archivedKey = habit.archivedAt ? formatDateKey(habit.archivedAt) : null;
-  while (cursor <= today) {
+  while (formatDateKey(cursor) <= todayKey) { // by date, so a midnight lost to DST cannot drop this week
     const next = monthly ? new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) : addDays(cursor, 7);
     let scheduled = 0;
     let done = 0;
