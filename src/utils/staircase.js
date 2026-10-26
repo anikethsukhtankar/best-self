@@ -2,27 +2,29 @@
 // one step each time the habit grew, and stone is laid only in weeks it was practised. A lighter
 // step is a landing, not a drop: the path only climbs or walks on. Pure, no React.
 import { formatDateKey, addDays, getWeekStart, parseDateKey } from './date.js';
-import { stagesOf, isHabitScheduledForDay } from './habits.js';
+import { stagesOf, settled, isHabitScheduledForDay } from './habits.js';
 
 const MIN_WEEKS = 8;
 
-const days = (st) => (st.recurrence.type === 'daily' ? 7 : st.recurrence.days.length);
+export const days = (st) => (st.recurrence.type === 'daily' ? 7 : st.recurrence.days.length);
 
 // Each stage's level: up one when it asks more (more minutes, more days, or new words with the
-// same terms), level when it asks less or rests.
+// same terms), level when it asks less or rests. New words on coming back from a rest are a rename.
 export const stageLevels = (stages) => {
   const levels = [];
   let level = 0;
   let prev = null;
+  let crossed = false;
   for (const st of stages) {
     if (!st.rest && prev) {
       const more = (st.durationMinutes ?? 0) > (prev.durationMinutes ?? 0)
         || days(st) > days(prev)
-        || ((st.durationMinutes ?? 0) === (prev.durationMinutes ?? 0) && days(st) === days(prev) && st.text !== prev.text);
+        || ((st.durationMinutes ?? 0) === (prev.durationMinutes ?? 0) && days(st) === days(prev) && !crossed && st.text !== prev.text);
       if (more) level++;
     }
     levels.push(level);
-    if (!st.rest) prev = st;
+    if (st.rest) crossed = true;
+    else { prev = st; crossed = false; }
   }
   return levels;
 };
@@ -66,9 +68,9 @@ const beginning = (habit, completions, today) => {
 // (solid when it met the threshold, hatch when begun, none otherwise), its level and whether the
 // habit was resting. Treads are runs of columns at one level.
 export const staircase = (habit, completions, threshold, today = new Date()) => {
-  const stages = stagesOf(habit);
-  const levels = stageLevels(stages);
   const todayKey = formatDateKey(today);
+  const stages = settled(habit, todayKey);
+  const levels = stageLevels(stages);
   const stageIndexAt = (dk) => {
     let at = -1;
     for (let i = 0; i < stages.length && stages[i].from <= dk; i++) at = i;
@@ -136,7 +138,7 @@ export const staircase = (habit, completions, threshold, today = new Date()) => 
 // minutes of the stage it was kept under), when it began, and each stage with its own record.
 export const lifetime = (habit, completions, today = new Date()) => {
   const todayKey = formatDateKey(today);
-  const stages = stagesOf(habit);
+  const stages = settled(habit, todayKey);
   const first = stages[0].from !== '0000-01-01' ? stages[0].from : null;
   let times = 0;
   let minutes = 0;

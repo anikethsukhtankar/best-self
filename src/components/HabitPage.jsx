@@ -3,8 +3,8 @@ import { useTheme } from '../hooks/useTheme';
 import { useDay } from '../hooks/useDay';
 import { Stair } from './Staircase';
 import { staircase, lifetime } from '../utils/staircase';
-import { stageAt, isResting, describeRecurrence } from '../utils/habits';
-import { formatDateKey, formatDate, parseDateKey } from '../utils/date';
+import { stageAt, stageNumbers, isResting, describeRecurrence } from '../utils/habits';
+import { formatDateKey, formatDate, parseDateKey, stageDate } from '../utils/date';
 import { roman } from '../utils/turn';
 
 const longDate = (dk) => formatDate(parseDateKey(dk), 'monthYear');
@@ -28,7 +28,8 @@ export function HabitPage({ habit, completions, threshold, labels, onBack, backL
     : s.rooted === 'second nature' ? `second nature since ${longDate(s.rootedSince)}`
     : s.rooted;
   const big = { fontSize: 'clamp(56px, 14vw, 96px)', fontWeight: 100, lineHeight: 0.85, letterSpacing: '-0.02em', color: theme.text, fontVariantNumeric: 'tabular-nums' };
-  let n = 0;
+  const numbers = stageNumbers(life.stages);
+  const nowIndex = life.stages.reduce((at, st, i) => (st.from <= todayKey ? i : at), -1);
 
   return (
     <div className="fade-in">
@@ -63,17 +64,16 @@ export function HabitPage({ habit, completions, threshold, labels, onBack, backL
 
       <div style={S.sectionLabel}>Stages</div>
       {life.stages.map((st, i) => {
-        const numeral = st.rest ? '' : roman(++n);
-        const last = i === life.stages.length - 1;
+        const numeral = st.rest ? '' : roman(numbers[i]);
         const future = st.from > todayKey;
         return (
-          <div key={st.from} style={{ display: 'flex', gap: 16, alignItems: 'baseline', padding: '12px 0', borderTop: `1px solid ${theme.borderLight}`, color: last ? theme.text : theme.textMuted }}>
+          <div key={st.from} style={{ display: 'flex', gap: 16, alignItems: 'baseline', padding: '12px 0', borderTop: `1px solid ${theme.borderLight}`, color: i === nowIndex ? theme.text : theme.textMuted }}>
             <span style={{ width: 28, flexShrink: 0, fontSize: 12, letterSpacing: '0.15em' }}>{numeral}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 300 }}>
-              {st.rest ? `Rest${st.until ? `, until ${formatDate(parseDateKey(st.until))}` : ''}` : terms(st)}
+              {st.rest ? `Rest${st.until ? `, until ${stageDate(st.until, todayKey)}` : ''}` : terms(st)}
             </span>
             <span style={{ fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right' }}>
-              {st.from === '0000-01-01' ? 'from the start' : future ? `from ${formatDate(parseDateKey(st.from))}` : `since ${formatDate(parseDateKey(st.from))}`}
+              {st.from === '0000-01-01' ? 'from the start' : `${future ? 'from' : 'since'} ${stageDate(st.from, todayKey)}`}
               {!st.rest && st.due > 0 && <span style={{ display: 'block' }}>{st.kept} of {st.due}</span>}
             </span>
           </div>

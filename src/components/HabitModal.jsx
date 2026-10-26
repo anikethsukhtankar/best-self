@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { DAY_LETTERS } from '../utils/constants';
-import { formatDateKey } from '../utils/date';
-import { stagesOf, isResting, describeRecurrence, REST_CHOICES } from '../utils/habits';
-import { shortDate } from '../utils/todos';
+import { formatDateKey, stageDate } from '../utils/date';
+import { settled, stageNumbers, isResting, describeRecurrence, REST_CHOICES } from '../utils/habits';
 import { roman } from '../utils/turn';
 import { growthOffer, heldFor, describeStep } from '../utils/growth';
 
@@ -53,9 +52,11 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
 
   // Where this habit stands: its stages, whether it rests today, and what a save would do.
   const todayKey = formatDateKey(new Date());
-  const stages = isEdit ? stagesOf(habit) : [];
+  const stages = isEdit ? settled(habit, todayKey) : [];
   const current = stages[stages.length - 1];
-  const steps = stages.filter((st) => !st.rest).length;
+  const numbers = stageNumbers(stages);
+  const steps = Math.max(0, ...numbers);
+  const nowIndex = stages.reduce((at, st, i) => (st.from <= todayKey ? i : at), -1);
   const resting = isEdit && isResting(habit, todayKey);
   const startsStage = isEdit && !resting && current && current.from < todayKey && valid
     && (taken || (minutes || null) !== (current.durationMinutes ?? null) || !sameRecurrence(recurrence, current.recurrence));
@@ -80,13 +81,13 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
   const textButton = (color, underline = false) => ({ border: 'none', background: 'none', padding: '6px 0', fontFamily: 'inherit', fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', color, textDecoration: underline ? 'underline' : 'none', textUnderlineOffset: 5 });
   const quiet = { fontSize: 12, color: theme.textMuted, fontVariantNumeric: 'tabular-nums' };
 
-  let n = 0;
-  const ledger = stages.map((st) => {
-    const numeral = st.rest ? '' : roman(++n);
+  const ledger = stages.map((st, i) => {
+    const numeral = st.rest ? '' : roman(numbers[i]);
     const terms = st.rest
-      ? `Rest${st.until ? ` until ${shortDate(st.until)}` : ''}`
+      ? `Rest${st.until ? ` until ${stageDate(st.until, todayKey)}` : ''}`
       : [st.text, st.durationMinutes && !st.text.includes(`${st.durationMinutes} min`) ? `${st.durationMinutes} min` : null, describeRecurrence(st)].filter(Boolean).join(' · ');
-    return { key: st.from, numeral, terms, since: st.from === '0000-01-01' ? 'from the start' : `since ${shortDate(st.from)}` };
+    const since = st.from === '0000-01-01' ? 'from the start' : `${st.from > todayKey ? 'from' : 'since'} ${stageDate(st.from, todayKey)}`;
+    return { key: st.from, numeral, terms, since };
   });
 
   return (
@@ -174,7 +175,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
           <div style={{ marginTop: 28 }}>
             <label style={S.modalLabel}>Stages</label>
             {ledger.map((row, i) => (
-              <div key={row.key} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '10px 0', borderTop: `1px solid ${theme.borderLight}`, color: i === ledger.length - 1 ? theme.text : theme.textMuted }}>
+              <div key={row.key} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '10px 0', borderTop: `1px solid ${theme.borderLight}`, color: i === nowIndex ? theme.text : theme.textMuted }}>
                 <span style={{ width: 28, flexShrink: 0, fontSize: 12, letterSpacing: '0.15em' }}>{row.numeral}</span>
                 <span style={{ flex: 1, fontSize: 14, fontWeight: 300, minWidth: 0 }}>{row.terms}</span>
                 <span style={{ ...quiet, flexShrink: 0 }}>{row.since}</span>
@@ -190,7 +191,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
         {isEdit && resting && (
           <>
             <p style={{ ...S.settingsNote, textAlign: 'center' }}>
-              Resting {current.until ? `until ${shortDate(current.until)}` : 'until you bring it back'}.
+              Resting {current.until ? `until ${stageDate(current.until, todayKey)}` : 'until you bring it back'}.
             </p>
             <button style={{ ...S.archiveButton, color: theme.text }} onClick={() => onResume(habit.id)}>Bring it back today</button>
           </>

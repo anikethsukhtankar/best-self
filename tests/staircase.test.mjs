@@ -76,3 +76,33 @@ test('lifetime: times kept and minutes given only grow, each kept day at its own
   assert.deepEqual([life.times, life.minutes, life.since], [3, 9, '2026-10-01']);
   assert.deepEqual(life.stages.map((s) => [s.kept, s.due]), [[2, 19], [1, 6]]);
 });
+
+test('a rest that ended by itself: the return is its own row, and an edit made while resting is a step', async () => {
+  const { lifetime } = await import('../src/utils/staircase.js');
+  const { yearEvents } = await import('../src/utils/almanac.js');
+  const h = { id: 'w', text: 'Walk 20 min', stages: [
+    { from: '2026-09-01', text: 'Walk 10 min', durationMinutes: 10, recurrence: { type: 'daily' } },
+    { from: '2026-09-20', text: 'Walk 20 min', durationMinutes: 20, recurrence: { type: 'daily' }, rest: true, until: '2026-09-27' },
+  ] };
+  const c = {};
+  for (let d = new Date(2026, 8, 1); d <= today; d.setDate(d.getDate() + 1)) {
+    const k = formatDateKey(d);
+    if (k < '2026-09-20' || k >= '2026-09-27') c[k] = { w: true };
+  }
+  const life = lifetime(h, c, today);
+  assert.deepEqual(life.stages.map((s) => [s.from, Boolean(s.rest), s.kept]), [['2026-09-01', false, 19], ['2026-09-20', true, 0], ['2026-09-27', false, 30]]);
+  assert.equal(staircase(h, c, 0.8, today).maxLevel, 1);
+  assert.deepEqual(yearEvents([h], 2026, '2026-10-26').steps.map((s) => [s.from, s.lighter]), [['2026-09-27', false]]);
+});
+
+test('levels and the almanac: a rename after a rest is not a step, moving days is not lighter', async () => {
+  const { yearEvents } = await import('../src/utils/almanac.js');
+  const run = (from, days, extra = {}) => ({ from, text: 'Run 30 min', durationMinutes: 30, recurrence: { type: 'specific_days', days }, ...extra });
+  const renamed = [run('2026-01-01', [1, 3, 5]), run('2026-03-01', [1, 3, 5], { rest: true }), { ...run('2026-03-08', [1, 3, 5]), text: 'Run, 30 min' }];
+  assert.deepEqual(stageLevels(renamed), [0, 0, 0]);
+  assert.deepEqual(yearEvents([{ id: 'r', text: 'Run, 30 min', stages: renamed }], 2026, '2026-10-26').steps, []);
+  const moved = yearEvents([{ id: 'r', text: 'Run 30 min', stages: [run('2026-01-01', [1, 3, 5]), run('2026-05-01', [2, 4, 6])] }], 2026, '2026-10-26').steps;
+  assert.deepEqual(moved.map((s) => s.lighter), [false]);
+  const fewer = yearEvents([{ id: 'r', text: 'Run 30 min', stages: [run('2026-01-01', [1, 3, 5]), run('2026-05-01', [2, 4])] }], 2026, '2026-10-26').steps;
+  assert.deepEqual(fewer.map((s) => s.lighter), [true]);
+});

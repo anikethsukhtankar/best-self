@@ -33,9 +33,13 @@ const STYLES = {
   weekdayMonthDay: { weekday: 'short', month: 'short', day: 'numeric' },
   month: { month: 'short' },
   monthYear: { month: 'short', year: 'numeric' },
+  monthDayYear: { month: 'short', day: 'numeric', year: 'numeric' },
 };
 const formatters = {};
 export const formatDate = (date, style = 'monthDay') => {
   formatters[style] ||= new Intl.DateTimeFormat(undefined, STYLES[style]);
   return formatters[style].format(date);
 };
+
+// A date in a ledger of stages: 'Sep 12' this year, 'Sep 1, 2025' in any other.
+export const stageDate = (dateKey, todayKey) => formatDate(parseDateKey(dateKey), dateKey.slice(0, 4) === todayKey.slice(0, 4) ? 'monthDay' : 'monthDayYear');

@@ -2,9 +2,9 @@
 // X and a begun day a single stroke, each with its chapter line, then the steps taken and the
 // rests of that year. Pure, no React.
 import { formatDateKey } from './date.js';
-import { getDayCompletion, stagesOf, describeRecurrence } from './habits.js';
+import { getDayCompletion, stagesOf, settled, sameTerms, describeRecurrence } from './habits.js';
 import { monthChapter } from './turn.js';
-import { stageLevels } from './staircase.js';
+import { stageLevels, days } from './staircase.js';
 
 // Where the record begins: the first check, or the first dated stage if that came earlier.
 export const recordStart = (habits, completions) => {
@@ -57,20 +57,22 @@ export const chapterFor = (chapters, habits, completions, threshold, year, month
 const terms = (st) => [st.text, st.durationMinutes && !st.text.includes(`${st.durationMinutes} min`) ? `${st.durationMinutes} min` : null, st.recurrence.type === 'daily' ? null : describeRecurrence(st)].filter(Boolean).join(' · ');
 
 // The year's steps (a habit grew, or took a lighter step) and rests, oldest first.
-export const yearEvents = (habits, year) => {
+export const yearEvents = (habits, year, todayKey = formatDateKey(new Date())) => {
   const steps = [];
   const rests = [];
   for (const h of habits) {
-    const stages = stagesOf(h);
+    const stages = settled(h, todayKey);
     const levels = stageLevels(stages);
     let prev = null;
     stages.forEach((st, i) => {
       if (st.from.slice(0, 4) === String(year)) {
         if (st.rest) rests.push({ text: prev?.text ?? h.text, from: st.from, until: st.until || null });
-        else if (prev && i > 0 && stages[i - 1].rest && st.text === prev.text && st.durationMinutes === prev.durationMinutes && JSON.stringify(st.recurrence) === JSON.stringify(prev.recurrence)) {
-          // came back from a rest unchanged: not a step
+        else if (prev && i > 0 && stages[i - 1].rest && sameTerms(st, prev, { words: false })) {
+          // came back from a rest unchanged, or only renamed: not a step
         } else if (prev) {
-          const lighter = levels[i] === levels[stages.indexOf(prev)];
+          // Lighter only when it asks less; moving to other days, as many of them, is neither.
+          const asksLess = (st.durationMinutes ?? 0) < (prev.durationMinutes ?? 0) || days(st) < days(prev);
+          const lighter = levels[i] === levels[stages.indexOf(prev)] && asksLess;
           steps.push({ from: st.from, before: terms(prev), after: terms(st), lighter });
         }
       }

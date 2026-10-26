@@ -184,3 +184,38 @@ test('an older build edit after a rest is kept; minutes typed as text survive ev
   assert.equal(typed.durationMinutes, 15);
   assert.deepEqual(migrateHabit(typed), typed);
 });
+
+test('bringing a habit back the same day undoes the rest exactly, whatever it stood in for', async () => {
+  const { restHabit, resumeHabit, changeHabit, migrateHabit, isHabitScheduledForDay, isResting, stageAt } = await import('../src/utils/habits.js');
+  const today = '2026-10-26';
+  const h = migrateHabit({ id: 'm', text: 'Meditate 10 min', durationMinutes: 10, recurrence: { type: 'daily' }, createdAt: '2026-08-01T00:00:00.000Z' });
+  // Resting since last week: bring it back, rest it again for a week, bring it back again.
+  const away = restHabit(h, '2026-10-20');
+  const again = resumeHabit(restHabit(resumeHabit(away, today), today, '2026-11-02'), today);
+  assert.equal(isResting(again, today), false);
+  assert.equal(isHabitScheduledForDay(again, new Date(2026, 9, 26)), true);
+  assert.equal(isResting(again, '2026-10-22'), true);
+  // A step set for tomorrow, rested today and brought back today: the step still begins tomorrow.
+  const stepped = changeHabit(h, { text: 'Meditate 15 min', durationMinutes: 15 }, '2026-10-27', { step: true });
+  const undone = resumeHabit(restHabit(stepped, today), today);
+  assert.deepEqual(undone.stages, stepped.stages);
+  assert.equal(stageAt(undone, today).text, 'Meditate 10 min');
+  // What a rest stood in for survives a save and a reload.
+  const saved = migrateHabit(restHabit(stepped, today), {}, today);
+  assert.deepEqual(resumeHabit(saved, today).stages, stepped.stages);
+  assert.deepEqual(migrateHabit(saved, {}, today), saved);
+});
+
+test('stage numerals: a return from rest, unchanged or renamed, is the same stage', async () => {
+  const { stageNumbers } = await import('../src/utils/habits.js');
+  const st = (from, text, minutes, extra = {}) => ({ from, text, durationMinutes: minutes, recurrence: { type: 'daily' }, ...extra });
+  assert.deepEqual(stageNumbers([
+    st('2026-01-01', 'Meditate', 5),
+    st('2026-03-01', 'Meditate', 10),
+    st('2026-04-01', 'Meditate', 10, { rest: true }),
+    st('2026-04-10', 'Meditate, eyes closed', 10),
+    st('2026-06-01', 'Meditate, eyes closed', 12),
+  ]), [1, 2, 0, 2, 3]);
+  // Without a rest between them, new words are a step of their own.
+  assert.deepEqual(stageNumbers([st('2026-01-01', 'Read', null), st('2026-02-01', 'Read a chapter', null)]), [1, 2]);
+});

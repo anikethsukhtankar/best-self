@@ -54,6 +54,28 @@ const validRecurrence = (r) => r && (r.type === 'daily' || (r.type === 'specific
   ? (r.type === 'daily' ? { type: 'daily' } : { type: 'specific_days', days: r.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6) })
   : { type: 'daily' };
 const fieldsOf = (x) => ({ text: x.text, durationMinutes: x.durationMinutes ?? null, recurrence: x.recurrence });
+const sameFields = (a, b) => JSON.stringify(fieldsOf(a)) === JSON.stringify(fieldsOf(b));
+
+// Do two stages ask the same of the person: the same minutes and days, and the same words? Across
+// a rest, pass `words: false`: a new name on coming back is a rename, never a step of its own.
+export const sameTerms = (a, b, { words = true } = {}) => (!words || a.text === b.text)
+  && (a.durationMinutes ?? null) === (b.durationMinutes ?? null)
+  && JSON.stringify(a.recurrence) === JSON.stringify(b.recurrence);
+
+// Each stage's numeral (I, II, ...) as a person would count them: a stage that asks the same as the
+// one before it (an unchanged or renamed return from a rest) keeps that one's number; rests get 0.
+export const stageNumbers = (stages) => {
+  let n = 0;
+  let prev = null;
+  let crossed = false;
+  return stages.map((st) => {
+    if (st.rest) { crossed = true; return 0; }
+    if (!prev || !sameTerms(st, prev, { words: !crossed })) n++;
+    prev = st;
+    crossed = false;
+    return n;
+  });
+};
 // Minutes as a number or nothing; a hand-edited "15" is read as 15 on every pass, not only the first.
 const minutesOf = (v) => {
   const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
@@ -73,6 +95,11 @@ export const migrateHabit = (habit, completions = {}, todayKey = formatDateKey(n
       if (st.rest) {
         out.rest = true;
         if (typeof st.until === 'string' && DATE_KEY.test(st.until) && st.until > st.from) out.until = st.until;
+        // The stages this rest stood in for, so bringing it back the same day can put them back.
+        const replaced = (Array.isArray(st.replaced) ? st.replaced : [])
+          .filter((r) => r && !r.rest && DATE_KEY.test(r.from) && r.from >= st.from)
+          .map((r) => ({ from: r.from, text: typeof r.text === 'string' ? r.text : out.text, durationMinutes: minutesOf(r.durationMinutes), recurrence: validRecurrence(r.recurrence) }));
+        if (replaced.length) out.replaced = replaced;
       }
       return out;
     })
@@ -124,10 +151,11 @@ export const sanitizeData = (data) => {
   };
 };
 
-// A rest whose end date has passed has already resumed (see stageAt). Before changing the ledger
-// after that, write the resumption down, so the change starts from the habit as it came back
-// instead of rewriting the rest and every day since.
-const settled = (habit, fromKey) => {
+// The ledger as of `fromKey`: a rest whose end date has passed has already resumed (see stageAt),
+// so its return is written down as a stage. Changes start from it, so they never rewrite the rest
+// or the days since; readers (the habit page, the staircase, the almanac) count the return as the
+// stage it is.
+export const settled = (habit, fromKey) => {
   const stages = [...stagesOf(habit)];
   const last = stages[stages.length - 1];
   if (last.rest && last.until && last.until <= fromKey) stages.push({ from: last.until, ...fieldsOf(last) });
@@ -159,6 +187,8 @@ export const restHabit = (habit, fromKey, untilKey = null) => {
   const last = all[all.length - 1];
   const rest = { from: fromKey, ...fieldsOf(last), rest: true };
   if (untilKey && untilKey > fromKey) rest.until = untilKey;
+  const replaced = all.filter((st) => st.from >= fromKey && !st.rest);
+  if (replaced.length) rest.replaced = replaced;
   return { ...habit, stages: [...stages, rest] };
 };
 
@@ -167,11 +197,14 @@ export const resumeHabit = (habit, fromKey) => {
   const last = stages[stages.length - 1];
   if (!last.rest) return habit;
   if (last.from >= fromKey) {
-    // Rested and brought back the same day: as if it never rested. If the rest replaced a stage
-    // that began that day, that stage comes back rather than disappearing.
+    // Rested and brought back the same day: as if it never rested. The stages the rest stood in
+    // for (one begun today, a step set for tomorrow) come back as they were, unless the habit was
+    // edited while resting; then it comes back as edited, from today.
     const before = stages[stages.length - 2];
+    const put = last.replaced?.[last.replaced.length - 1];
     stages.pop();
-    if (!before || JSON.stringify(fieldsOf(before)) !== JSON.stringify(fieldsOf(last))) stages.push({ from: last.from, ...fieldsOf(last) });
+    if (put && sameFields(put, last)) stages.push(...last.replaced);
+    else if (!before || before.rest || !sameFields(before, last)) stages.push({ from: last.from, ...fieldsOf(last) });
   } else stages.push({ from: fromKey, ...fieldsOf(last) });
   return { ...habit, stages };
 };
