@@ -105,4 +105,7 @@ test('a rest is weather: holding reaches back across it, a change of terms start
   assert.equal(growthOffer(rested, c, today).kind, 'ready');
   const changed = habit({ stages: [st('2026-09-01'), st('2026-10-01', { rest: true, until: '2026-10-08' }), st('2026-10-08', { text: 'Meditate 12 min', durationMinutes: 12 })] });
   assert.equal(heldDays(changed, c, today), 18);
+  // Three years held reads as three years, not two.
+  const old = habit({ stages: [st('2023-09-01')] });
+  assert.equal(heldFor(heldDays(old, record(1200), today)), 'three years');
 });

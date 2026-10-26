@@ -10,7 +10,7 @@ import { stageLevels } from './staircase.js';
 export const recordStart = (habits, completions) => {
   let first = null;
   for (const [dk, day] of Object.entries(completions)) {
-    if (day && Object.values(day).some(Boolean) && (!first || dk < first)) first = dk;
+    if ((!first || dk < first) && day && Object.values(day).some(Boolean)) first = dk;
   }
   for (const h of habits) for (const st of stagesOf(h)) if (st.from !== '0000-01-01' && (!first || st.from < first)) first = st.from;
   return first;

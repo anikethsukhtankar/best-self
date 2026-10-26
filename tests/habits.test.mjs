@@ -164,3 +164,23 @@ test('a rest that has ended stays in the record when the habit is changed later'
   assert.deepEqual(undone.stages, stepped.stages);
   assert.equal(undone.text, stepped.text);
 });
+
+test('an older build edit after a rest is kept; minutes typed as text survive every load', async () => {
+  const { migrateHabit, stageAt } = await import('../src/utils/habits.js');
+  const run = (from, extra = {}) => ({ from, text: 'Run 20 min', durationMinutes: 20, recurrence: { type: 'specific_days', days: [1, 3, 5] }, ...extra });
+  const ended = { id: 'r', text: 'Run (outdoors)', durationMinutes: 30, recurrence: { type: 'daily' }, stages: [run('2026-06-01'), run('2026-09-01', { rest: true, until: '2026-09-08' })] };
+  const out = migrateHabit(ended, {}, '2026-10-26');
+  assert.equal(stageAt(out, '2026-09-20').text, 'Run 20 min');
+  assert.equal(stageAt(out, '2026-10-26').text, 'Run (outdoors)');
+  assert.equal(out.durationMinutes, 30);
+  assert.deepEqual(migrateHabit(out, {}, '2026-10-27'), out);
+  // While a rest is still in force, the edit waits in the rest for the habit's return.
+  const resting = { ...ended, stages: [run('2026-06-01'), run('2026-10-20', { rest: true })] };
+  const waiting = migrateHabit(resting, {}, '2026-10-26');
+  assert.equal(waiting.stages.length, 2);
+  assert.equal(waiting.stages[1].rest, true);
+  assert.equal(waiting.stages[1].text, 'Run (outdoors)');
+  const typed = migrateHabit({ id: 'b', text: 'b', durationMinutes: '15', recurrence: { type: 'daily' }, createdAt: '2026-09-01T00:00:00.000Z' });
+  assert.equal(typed.durationMinutes, 15);
+  assert.deepEqual(migrateHabit(typed), typed);
+});

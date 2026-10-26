@@ -207,7 +207,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
   });
 
   useEffect(() => {
-    const onKey = ev => { if (ev.key === 'Escape') onClose(); };
+    const onKey = ev => { if (ev.key === 'Escape') { ev.preventDefault(); onClose(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -241,7 +241,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 
   return (
     <div style={S.modalOverlay} onClick={onClose}>
-      <div style={S.modal} onClick={ev => ev.stopPropagation()}>
+      <div style={S.modal} onClick={ev => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label="Settings">
         <button style={S.modalClose} onClick={onClose}>×</button>
         <div style={S.modalTitle}>Settings</div>
 

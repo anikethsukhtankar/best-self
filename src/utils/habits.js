@@ -54,17 +54,22 @@ const validRecurrence = (r) => r && (r.type === 'daily' || (r.type === 'specific
   ? (r.type === 'daily' ? { type: 'daily' } : { type: 'specific_days', days: r.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6) })
   : { type: 'daily' };
 const fieldsOf = (x) => ({ text: x.text, durationMinutes: x.durationMinutes ?? null, recurrence: x.recurrence });
+// Minutes as a number or nothing; a hand-edited "15" is read as 15 on every pass, not only the first.
+const minutesOf = (v) => {
+  const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 
 // Give every habit a valid ledger of stages. A habit saved before stages existed begins on the
 // day it was created, or on the first day it was checked if that came earlier, so days before it
 // existed stop counting it as missed. Pure and idempotent.
 export const migrateHabit = (habit, completions = {}, todayKey = formatDateKey(new Date())) => {
   const recurrence = validRecurrence(habit.recurrence);
-  const base = { ...habit, recurrence, timeBlock: typeof habit.timeBlock === 'string' ? habit.timeBlock : 'morning', sortOrder: Number.isFinite(habit.sortOrder) ? habit.sortOrder : 0 };
+  const base = { ...habit, recurrence, durationMinutes: minutesOf(habit.durationMinutes), timeBlock: typeof habit.timeBlock === 'string' ? habit.timeBlock : 'morning', sortOrder: Number.isFinite(habit.sortOrder) ? habit.sortOrder : 0 };
   const clean = (Array.isArray(habit.stages) ? habit.stages : [])
     .filter((st) => st && DATE_KEY.test(st.from))
     .map((st) => {
-      const out = { from: st.from, text: typeof st.text === 'string' ? st.text : base.text, durationMinutes: Number.isFinite(st.durationMinutes) ? st.durationMinutes : null, recurrence: validRecurrence(st.recurrence) };
+      const out = { from: st.from, text: typeof st.text === 'string' ? st.text : base.text, durationMinutes: minutesOf(st.durationMinutes), recurrence: validRecurrence(st.recurrence) };
       if (st.rest) {
         out.rest = true;
         if (typeof st.until === 'string' && DATE_KEY.test(st.until) && st.until > st.from) out.until = st.until;
@@ -74,14 +79,16 @@ export const migrateHabit = (habit, completions = {}, todayKey = formatDateKey(n
     .sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
   const stages = clean.filter((st, i) => i === clean.length - 1 || clean[i + 1].from !== st.from); // same day: the later wins
   // An older build (one that predates stages, still cached on a device) edits only the habit's own
-  // fields. Keep that edit: a rename amends the latest stage, anything else becomes a stage from today.
+  // fields. Keep that edit: a rename amends the latest stage, anything else becomes a stage from today
+  // (or, during a rest, waits in the rest for the habit's return, as an edit made while resting does).
   const latest = stages[stages.length - 1];
-  if (latest && !latest.rest && habit.recurrence && typeof habit.text === 'string') {
-    const top = { text: habit.text, durationMinutes: Number.isFinite(habit.durationMinutes) ? habit.durationMinutes : null, recurrence };
+  if (latest && habit.recurrence && typeof habit.text === 'string') {
+    const top = { text: habit.text, durationMinutes: base.durationMinutes, recurrence };
     const sameTerms = top.durationMinutes === latest.durationMinutes && JSON.stringify(top.recurrence) === JSON.stringify(latest.recurrence);
+    const resting = latest.rest && !(latest.until && latest.until <= todayKey);
     if (sameTerms && top.text !== latest.text) stages[stages.length - 1] = { ...latest, text: top.text };
     else if (!sameTerms) {
-      if (latest.from >= todayKey) stages[stages.length - 1] = { ...latest, ...top };
+      if (resting || (!latest.rest && latest.from >= todayKey)) stages[stages.length - 1] = { ...latest, ...top };
       else stages.push({ from: todayKey, ...top });
     }
   }

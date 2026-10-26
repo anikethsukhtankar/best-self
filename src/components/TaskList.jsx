@@ -61,6 +61,7 @@ export function TaskList({ todos, tagFor, onToggle, onDelete, onAdd, compact }) 
             setText('');
           }
           if (ev.key === 'Escape') {
+            ev.preventDefault();
             setText('');
             ev.target.blur();
           }

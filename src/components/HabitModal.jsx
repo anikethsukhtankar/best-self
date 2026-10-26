@@ -33,6 +33,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
   useEffect(() => {
     const onKey = (ev) => {
       if (ev.key !== 'Escape') return;
+      ev.preventDefault(); // handled here: the turned month behind stays as it is
       if (restOpen) setRestOpen(false);
       else onClose();
     };

@@ -59,7 +59,7 @@ export const heldDays = (habit, completions, today = new Date()) => {
   if (!start) return 0;
   let since = todayKey;
   let missedLast = false;
-  for (let d = new Date(today), guard = 0; guard < 730; d = addDays(d, -1), guard++) {
+  for (let d = new Date(today), guard = 0; guard < 3660; d = addDays(d, -1), guard++) {
     const dk = formatDateKey(d);
     if (dk < start) break;
     if (!isHabitScheduledForDay(habit, d)) continue;

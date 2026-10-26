@@ -62,10 +62,13 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
     a.raf = requestAnimationFrame(step);
   };
 
-  // Escape settles a turned month.
+  // Escape settles a turned month, unless a modal or a field in front of it is using that Escape.
   useEffect(() => {
     if (!goal) return undefined;
-    const onKey = (ev) => { if (ev.key === 'Escape') turnTo(0); };
+    const onKey = (ev) => {
+      if (ev.key !== 'Escape' || ev.defaultPrevented || document.querySelector('[aria-modal="true"]')) return;
+      turnTo(0);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
