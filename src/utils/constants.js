@@ -38,24 +38,24 @@ export const createHabit = (text, timeBlock, recurrence, durationMinutes, sortOr
   sortOrder
 });
 
-// Seed habits: the core list a fresh start begins with. Monday to Saturday the daily practice;
-// cycling, push, pull and legs take turns; study is an hour early in the week and two late in it;
-// Sunday is a rest day. Minutes only where the habit names them.
+// Seed habits: the core list a fresh start begins with. Mornings, cycling, push, pull and legs take
+// turns; after work, a walk and study (an hour early in the week, two late in it); evenings, meditate,
+// read, water and diet. Sunday is a rest day. Minutes only where the habit names them.
 const MON_TO_SAT = { type: 'specific_days', days: [1, 2, 3, 4, 5, 6] };
 const on = (...days) => ({ type: 'specific_days', days });
 export const seedHabits = () => [
   createHabit('Cycling', 'morning', on(1, 3, 5), null, 0),
-  createHabit('Meditate', 'morning', MON_TO_SAT, null, 1),
-  createHabit('Rest Day', 'morning', on(0), null, 2),
-  createHabit('Push Day', 'afternoon', on(2), null, 0),
-  createHabit('Pull Day', 'afternoon', on(4), null, 1),
-  createHabit('Leg Day', 'afternoon', on(6), null, 2),
+  createHabit('Push Day', 'morning', on(2), null, 1),
+  createHabit('Pull Day', 'morning', on(4), null, 2),
+  createHabit('Leg Day', 'morning', on(6), null, 3),
+  createHabit('Rest Day', 'morning', on(0), null, 4),
   createHabit('5K Walk', 'postwork', MON_TO_SAT, null, 0),
   createHabit('Study 1 Hour', 'postwork', on(1, 2, 3), 60, 1),
   createHabit('Study 2 Hours', 'postwork', on(4, 5, 6), 120, 2),
-  createHabit('Read 30 min', 'evening', MON_TO_SAT, 30, 0),
-  createHabit('Drink 3L Water', 'evening', MON_TO_SAT, null, 1),
-  createHabit('Healthy Diet', 'evening', MON_TO_SAT, null, 2),
+  createHabit('Meditate', 'evening', MON_TO_SAT, null, 0),
+  createHabit('Read 30 min', 'evening', MON_TO_SAT, 30, 1),
+  createHabit('Drink 3L Water', 'evening', MON_TO_SAT, null, 2),
+  createHabit('Healthy Diet', 'evening', MON_TO_SAT, null, 3),
 ];
 export const SEED_HABITS = seedHabits();
 
