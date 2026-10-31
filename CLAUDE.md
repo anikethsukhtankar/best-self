@@ -49,12 +49,17 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
 - No `<form>` tags; onClick/onChange/onKeyDown handlers only. Escape closes every modal.
 - Never strip characters from people's text; React escapes on render.
 
-## Handoff (as of 2026-10-26)
+## Handoff (as of 2026-10-31)
 
-- Branch `claude/magical-lovelace-yf65vq` (not yet merged) adds the growth release: the SVG calendar and The Turn,
-  dated stages and rest, growth offers on Today and in the editor, per-habit staircases and the almanac in Insights,
-  and the welcome with an in-memory sample year. Design came from a five-lens design panel; the ideas not built yet
-  are on the README roadmap (anchors, one line a day, seasons).
+- The growth release (branch `claude/magical-lovelace-yf65vq`) is merged to `main` and live: the SVG calendar and
+  The Turn, dated stages and rest, growth offers on Today and in the editor, per-habit staircases, a page per habit
+  and the almanac in Insights, and the welcome with an in-memory sample year. Design came from a five-lens design
+  panel; the ideas not built yet are on the README roadmap (anchors, one line a day, seasons). Two adversarial review
+  passes ran over it; their confirmed findings are fixed and tested.
+- The seed habits are the owner's core list (`seedHabits()` in `constants.js`): workouts in the morning (Cycling
+  Mon/Wed/Fri, Push Tue, Pull Thu, Leg Sat, Rest Day Sun), 5K Walk and Study after work (1 hour Mon-Wed, 2 hours
+  Thu-Sat), and Meditate, Read 30 min, 3L water and healthy diet in the evening. Settings -> Start over clears a device
+  and begins again with that list.
 - Verification used headless Chromium at real device scales (`--force-device-scale-factor`, the headless_shell build
   allows a 375px window); Playwright's emulated deviceScaleFactor lays out in CSS pixels and is not like a retina screen.
 

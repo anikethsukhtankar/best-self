@@ -17,7 +17,7 @@ Live: https://anikethsukhtankar.github.io/best-self/
 - **Tasks.** One-off tasks scoped to a day. Open tasks from earlier days carry forward onto today with a small date tag; completed tasks stay on the day you finished them.
 - **Insights.** Current and best streak, this week's percentage, a twelve-month consistency grid, a 90-day rolling trend line (7 or 30 day window), each habit as the staircase it has climbed (weekly stone, a tread that rises with each step, and how rooted it is: new, taking root, second nature), and the almanac: each year as twelve printed months with their chapter lines (rewrite any in your own words), the steps taken and the rests.
 - **Welcome and a sample year.** A first visit can begin, or look around fourteen months of sample history held in memory only.
-- **Settings.** Dark mode, completion threshold, time-block names and order, JSON export and import.
+- **Settings.** Dark mode, completion threshold, time-block names and order, next-step offers on or off, JSON export and import, and Start over (asks first, then begins again with the core list).
 - **Installable.** A web app manifest and service worker make it installable on a phone and usable offline after the first visit.
 
 There are no points, badges, leaderboards or streak penalties. A missed day is weather.
