@@ -116,3 +116,14 @@ body.dark {
     animation-delay: 0ms !important;
   }
 }
+
+/* Where the keyboard is: one hairline ring in ink, the same on every control, never a colour. */
+.light :focus-visible {
+  outline: 1px solid #000;
+  outline-offset: 4px;
+}
+
+.dark :focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 4px;
+}

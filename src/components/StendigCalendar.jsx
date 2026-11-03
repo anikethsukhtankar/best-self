@@ -17,10 +17,27 @@ const pts = (list) => list.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).jo
 // day and an X through every completed one. Drawn as one SVG in CSS pixels, sized to its column.
 // Press the month name and it turns: the plan tips into an isometric elevation of the month,
 // complete days standing as blocks. Tap to turn and tap again to settle, or hold to look.
+// A span or an SVG group that works like a button: focusable, named, pressed with Enter or Space.
+const pressable = (label, onPress) => ({
+  role: 'button',
+  tabIndex: 0,
+  'aria-label': label,
+  onClick: onPress,
+  onKeyDown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPress(); } },
+});
+
 export function StendigCalendar({ selectedDate, onSelect, habits, completions, threshold, chapters }) {
   const { theme, S } = useTheme();
   const uid = useId().replace(/:/g, '');
-  const [viewMonth, setViewMonth] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  const [viewMonth, setViewMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  // The month in view follows the selected day whenever that day moves into another month (the day
+  // arrows, the week strip, Today, midnight); in between, the month arrows browse freely.
+  const selectedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getTime();
+  const [followed, setFollowed] = useState(selectedMonth);
+  if (followed !== selectedMonth) {
+    setFollowed(selectedMonth);
+    setViewMonth(new Date(selectedMonth));
+  }
   const [width, setWidth] = useState(0);
   const [turn, setTurn] = useState(0); // 0 flat plan, 1 elevation, between while turning
   const [goal, setGoal] = useState(0);
@@ -121,7 +138,7 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
   return (
     <div style={S.stendigCalendar}>
       <div style={S.stendigHeader}>
-        <span style={S.stendigNavArrow} onClick={() => shift(-1)}>‹</span>
+        <span style={S.stendigNavArrow} {...pressable('Previous month', () => shift(-1))}>‹</span>
         <span
           role="button"
           tabIndex={0}
@@ -136,7 +153,7 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
         >
           {MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}
         </span>
-        <span style={S.stendigNavArrow} onClick={() => shift(1)}>›</span>
+        <span style={S.stendigNavArrow} {...pressable('Next month', () => shift(1))}>›</span>
       </div>
       <div ref={box}>
         {L && (turn === 0
@@ -149,6 +166,8 @@ export function StendigCalendar({ selectedDate, onSelect, habits, completions, t
 }
 
 function Plan({ L, width, days, viewMonth, selectedDate, today, status, theme, onSelect }) {
+  // The day the keyboard is on, ringed (a hairline circle) so a keyboard user can see it.
+  const [keyed, setKeyed] = useState(null);
   return (
     <svg width={width} height={L.height} style={{ display: 'block', overflow: 'visible' }}>
       {DAY_LETTERS.map((d, i) => (
@@ -172,9 +191,21 @@ function Plan({ L, width, days, viewMonth, selectedDate, today, status, theme, o
         const ink = isSelected ? theme.accentText : isCurrentMonth ? theme.text : theme.textFaintest;
 
         return (
-          <g key={i} onClick={() => onSelect(day)} style={{ cursor: 'pointer' }} data-calendar-day={formatDateKey(day)} data-in-month={isCurrentMonth} data-date-number={day.getDate()}>
+          <g
+            key={i}
+            {...pressable(formatDate(day, 'weekdayMonthDay'), () => onSelect(day))}
+            tabIndex={isCurrentMonth ? 0 : -1}
+            aria-current={isSelected ? 'date' : undefined}
+            onFocus={(ev) => setKeyed(ev.currentTarget.matches(':focus-visible') ? i : null)}
+            onBlur={() => setKeyed(null)}
+            style={{ cursor: 'pointer', outline: 'none' }}
+            data-calendar-day={formatDateKey(day)}
+            data-in-month={isCurrentMonth}
+            data-date-number={day.getDate()}
+          >
             <rect {...m.cell} fill="transparent" />
             {isSelected && <rect {...m.disc} fill={theme.accent} />}
+            {keyed === i && <rect x={m.disc.x - 3.5} y={m.disc.y - 3.5} width={m.disc.width + 7} height={m.disc.height + 7} rx={m.disc.rx + 3.5} fill="none" stroke={theme.accent} strokeWidth={1} />}
             <text
               {...m.numeral}
               textAnchor="middle"

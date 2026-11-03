@@ -127,7 +127,7 @@ export const getStyles = (t) => ({
   archiveButton: { width: '100%', padding: '14px 24px', fontSize: 14, background: 'transparent', color: t.textMuted, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginTop: 16 },
   settingsSection: { marginBottom: 36, paddingBottom: 36, borderBottom: `1px solid ${t.border}` },
   sliderContainer: { display: 'flex', alignItems: 'center', gap: 20 },
-  slider: { flex: 1, height: 2, WebkitAppearance: 'none', appearance: 'none', background: t.border, outline: 'none', cursor: 'pointer' },
+  slider: { flex: 1, height: 2, WebkitAppearance: 'none', appearance: 'none', background: t.border, cursor: 'pointer' },
   sliderValue: { fontSize: 28, fontWeight: 100, minWidth: 70, textAlign: 'right', color: t.text },
   settingsNote: { fontSize: 14, color: t.textMuted, marginTop: 16, lineHeight: 1.6 },
   darkModeToggle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' },
