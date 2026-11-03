@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useData, hasStoredState, beginFresh } from './hooks/useData';
 import { useTheme } from './hooks/useTheme';
+import { useToday } from './hooks/useDay';
 import { ThemeProvider } from './hooks/ThemeProvider';
 import { AuthScreen } from './components/AuthScreen';
 import { Welcome } from './components/Welcome';
@@ -436,7 +437,16 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onSample, onLeaveSample }) {
   const isMobile = useIsMobile();
   const { state, save, importData, exportData, startOver: startOverData, syncing, lastSynced } = useData(user, { sample, darkMode: startDark });
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  // When the day turns over while today is on screen (left open overnight, or woken the next
+  // morning), follow it to the new today. A day chosen on purpose stays chosen.
+  const today = useToday();
+  const shownToday = useRef(formatDateKey(today));
+  useEffect(() => {
+    const before = shownToday.current;
+    shownToday.current = formatDateKey(today);
+    if (before !== shownToday.current) setSelectedDate((d) => (formatDateKey(d) === before ? new Date() : d));
+  }, [today]);
   const [tab, setTab] = useState('today');
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -573,7 +583,6 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
     );
   }
 
-  const today = new Date();
   const isToday = isSameDay(selectedDate, today);
   const dk = formatDateKey(selectedDate);
   const dayHabits = getHabitsForDay(state.habits, selectedDate);
