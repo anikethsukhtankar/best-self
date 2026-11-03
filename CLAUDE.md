@@ -13,10 +13,12 @@ npm run lint       # must stay at 0 problems
 npm test           # node:test suites in tests/ (no runner to install)
 npm run smoke      # server-renders the Insights tree with synthetic data; fails loudly
 npm run build      # production build to dist/ (base is /best-self/)
+npm run e2e        # every customer journey in a real browser (tests/e2e/*.journey.mjs); about 10 minutes
 ```
 
-Before calling a change done: lint, test, build, smoke, and look at it in the browser at desktop width,
-375px, and dark mode (Settings → Dark Mode). Prefer a rendered screenshot over a description.
+Before calling a change done: lint, test, build, smoke, e2e, and look at it in the browser at desktop
+width, 375px, and dark mode (Settings → Dark Mode). Prefer a rendered screenshot over a description.
+A new feature or a bug fix gets a journey in tests/e2e/ that would have caught it.
 
 ## Design rules (every change must pass "would the Stendig calendar do this?")
 
@@ -60,6 +62,10 @@ Before calling a change done: lint, test, build, smoke, and look at it in the br
   Mon/Wed/Fri, Push Tue, Pull Thu, Leg Sat, Rest Day Sun), 5K Walk and Study after work (1 hour Mon-Wed, 2 hours
   Thu-Sat), and Meditate, Read 30 min, 3L water and healthy diet in the evening. Settings -> Start over clears a device
   and begins again with that list.
+- `npm run e2e` holds ~200 customer journeys across first visit and data, Today, habits, growth, tasks,
+  Insights and The Turn, and settings/keyboard/time zones, each at 1440 and 375 where layouts differ.
+  The harness (`tests/e2e/harness.mjs`) sets the clock, time zone and stored data per journey; use
+  `--no-build`, `--grep`, `E2E_PORT` and `E2E_RESULTS` to run parts side by side.
 - Verification used headless Chromium at real device scales (`--force-device-scale-factor`, the headless_shell build
   allows a 375px window); Playwright's emulated deviceScaleFactor lays out in CSS pixels and is not like a retina screen.
 

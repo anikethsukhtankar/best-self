@@ -33,9 +33,16 @@ npm run lint       # eslint, kept at zero problems
 npm test           # node:test suites in tests/
 npm run smoke      # server-renders the Insights tree with synthetic data
 npm run visual     # builds a browser harness for Insights into dist-visual/
+npm run e2e        # every customer journey, end to end, in headless Chromium (see below)
 ```
 
 Node 20 or newer. No test runner to install: tests use Node's built-in `node --test`.
+
+`npm run e2e` builds the app, serves it, and walks through every customer journey in
+`tests/e2e/*.journey.mjs` in headless Chromium, at a 1440px desktop and a 375px phone with touch, with
+the clock, time zone and stored data set per journey. It prints one line per journey and leaves a
+screenshot of any failure in `e2e-results/`. It needs a Chromium: the one Playwright installs
+(`npx playwright-core install chromium`), or any build named in `BEST_SELF_CHROMIUM`.
 
 ## Data
 
@@ -88,6 +95,7 @@ src/utils/                  pure logic: habits (stages, rest, migration), growth
 src/styles/theme.js         light and dark tokens and style objects
 public/                     manifest, service worker, icons
 tests/                      node:test suites and the visual / smoke harness
+tests/e2e/                  customer journeys in a real browser: harness, runner, one file per area
 ```
 
 ## Roadmap
