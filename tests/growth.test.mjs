@@ -148,3 +148,10 @@ test('a name in hours follows the minutes too', () => {
   assert.equal(growthOffer(named('Study 2 Hours', 120), record(30, [1, 2, 3, 4, 5, 6]), today).proposal.text, 'Study 75 min');
   assert.equal(growthOffer(named('Read 30 min', 30), held, today).proposal.text, 'Read 35 min');
 });
+
+test('a written next step brings the time it names, in minutes or hours', async () => {
+  const { minutesNamed } = await import('../src/utils/growth.js');
+  assert.deepEqual(['Meditate 15 min', 'Plank 2 minutes', 'Study 3 Hours', 'Study 1 hour', 'Run 1.5 hours', 'Walk 2 hrs', 'Read a chapter', 'Read 20 pages'].map(minutesNamed), [15, 2, 180, 60, 90, 120, null, null]);
+  const study = habit({ text: 'Study 2 Hours', durationMinutes: 120, next: 'Study 3 Hours', stages: [{ from: '2026-09-01', text: 'Study 2 Hours', durationMinutes: 120, recurrence: { type: 'daily' } }] });
+  assert.deepEqual(growthOffer(study, record(30), today).proposal.durationMinutes, 180);
+});

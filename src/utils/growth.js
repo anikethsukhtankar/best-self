@@ -20,6 +20,15 @@ const renamed = (text, from, to) => {
   return text.replace(new RegExp(`(^|\\D)${from / 60} (hour)s?\\b`, 'i'), (_, pre, hour) => `${pre}${to % 60 ? `${to} min` : `${to / 60} ${hour}${to === 60 ? '' : 's'}`}`);
 };
 
+// The time a name gives itself, in minutes: 'Meditate 15 min' is 15, 'Study 3 Hours' 180, 'Run 1.5
+// hours' 90. Null when it names none.
+export const minutesNamed = (text) => {
+  const min = /(?:^|[^\d.])(\d+) ?min/i.exec(text);
+  if (min) return Number(min[1]);
+  const hours = /(?:^|[^\d.])(\d+(?:\.\d+)?) ?(?:hours?|hrs?)\b/i.exec(text);
+  return hours ? Math.round(Number(hours[1]) * 60) : null;
+};
+
 const daysPerWeek = (recurrence) => (recurrence.type === 'daily' ? 7 : recurrence.days.length);
 
 // A rest of up to a month (the longest of the rest choices) is weather; a longer absence, or an
@@ -112,9 +121,8 @@ export const growthOffer = (habit, completions, today = new Date()) => {
   if (age >= 21 && recent.length >= n && done >= n - 1) {
     let proposal = null;
     if (habit.next) {
-      // A written next step that names its minutes ('Meditate 15 min') brings them with it.
-      const named = /(\d+) min/.exec(habit.next);
-      proposal = { text: habit.next, durationMinutes: named ? Number(named[1]) : stage.durationMinutes, recurrence: stage.recurrence };
+      // A written next step that names its time ('Meditate 15 min', 'Study 3 Hours') brings it along.
+      proposal = { text: habit.next, durationMinutes: minutesNamed(habit.next) ?? stage.durationMinutes, recurrence: stage.recurrence };
     }
     else if (stage.durationMinutes && longer(stage.durationMinutes)) {
       const minutes = longer(stage.durationMinutes);
