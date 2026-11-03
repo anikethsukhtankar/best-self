@@ -481,9 +481,12 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
     save({ ...state, todos: [...state.todos, todo] });
   }, [state, save, selectedDate]);
 
+  // A task ticked while another day is on screen is done on that day, so it stays where it was ticked.
   const toggleTodo = useCallback(id => {
-    save({ ...state, todos: state.todos.map(t => t.id === id ? { ...t, completedAt: t.completedAt ? null : new Date().toISOString() } : t) });
-  }, [state, save]);
+    const now = new Date();
+    const at = isSameDay(selectedDate, now) ? now : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 12);
+    save({ ...state, todos: state.todos.map(t => t.id === id ? { ...t, completedAt: t.completedAt ? null : at.toISOString() } : t) });
+  }, [state, save, selectedDate]);
 
   const deleteTodo = useCallback(id => {
     save({ ...state, todos: state.todos.filter(t => t.id !== id) });

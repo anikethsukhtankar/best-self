@@ -66,7 +66,7 @@ export const getStyles = (t) => ({
   habitRow: { display: 'flex', alignItems: 'center', padding: '16px 0', cursor: 'pointer' },
   checkbox: { width: 24, height: 24, borderRadius: '50%', border: `1.5px solid ${t.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' },
   checkboxChecked: { background: t.accent },
-  habitText: { flex: 1, fontSize: 18, marginLeft: 20, fontWeight: 300, color: t.text },
+  habitText: { flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontSize: 18, marginLeft: 20, fontWeight: 300, color: t.text },
   habitTextDone: { color: t.textFaint, textDecoration: 'line-through' },
   habitDuration: { fontSize: 14, color: t.textFaint, marginLeft: 20, fontVariantNumeric: 'tabular-nums' },
   todoSection: { marginTop: 64, paddingTop: 48, borderTop: `1px solid ${t.border}` },
