@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth';
 import { useData, hasStoredState, beginFresh } from './hooks/useData';
 import { useTheme } from './hooks/useTheme';
 import { useToday } from './hooks/useDay';
+import { useDialog } from './hooks/useDialog';
 import { ThemeProvider } from './hooks/ThemeProvider';
 import { AuthScreen } from './components/AuthScreen';
 import { Welcome } from './components/Welcome';
@@ -217,19 +218,10 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
     order: settings.timeBlockOrder || TIME_BLOCKS,
   });
 
-  useEffect(() => {
-    const onKey = ev => { if (ev.key === 'Escape') { ev.preventDefault(); onClose(); } };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  // Focus moves into Settings when it opens, and back to where it was when it closes.
+  // Focus moves in to the close button and back when Settings closes; Tab stays inside; Escape closes.
+  const dialogRef = useRef(null);
   const closeRef = useRef(null);
-  useEffect(() => {
-    const before = document.activeElement;
-    closeRef.current?.focus();
-    return () => before?.focus?.();
-  }, []);
+  useDialog(dialogRef, closeRef, onClose);
 
   const todayHabits = getHabitsForDay(habits, new Date());
   const settingsLink = { border: 'none', background: 'none', padding: '6px 0', fontFamily: 'inherit', fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' };
@@ -261,7 +253,7 @@ function SettingsModal({ settings, onSave, onClose, habits, onManageHabits, full
 
   return (
     <div style={S.modalOverlay} onClick={onClose}>
-      <div style={S.modal} onClick={ev => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label="Settings">
+      <div ref={dialogRef} style={S.modal} onClick={ev => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label="Settings">
         <button ref={closeRef} style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
         <div style={S.modalTitle}>Settings</div>
 

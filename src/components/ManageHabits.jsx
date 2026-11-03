@@ -22,7 +22,7 @@ export function ManageHabits({ habits, labels, blockOrder, onBack, onNew, onEdit
 
   return (
     <div>
-      <span style={S.backLink} onClick={onBack}>‹ Back</span>
+      <button style={{ ...S.backLink, border: 'none', background: 'none', padding: 0, fontFamily: 'inherit' }} onClick={onBack}>‹ Back</button>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 36 }}>
         <div style={{ ...S.sectionLabel, marginBottom: 0 }}>Manage habits</div>
         <button style={{ ...S.tab, color: theme.text }} onClick={onNew}>+ New habit</button>

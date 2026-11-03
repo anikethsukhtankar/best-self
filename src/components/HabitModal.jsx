@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useDialog } from '../hooks/useDialog';
 import { DAY_LETTERS } from '../utils/constants';
 import { formatDateKey, stageDate } from '../utils/date';
 import { settled, stageNumbers, isResting, describeRecurrence, REST_CHOICES } from '../utils/habits';
@@ -28,22 +29,13 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
   const [taken, setTaken] = useState(false);
   const inputRef = useRef(null);
 
-  // Focus moves into the editor when it opens, and back to where it was when it closes.
-  useEffect(() => {
-    const before = document.activeElement;
-    inputRef.current?.focus();
-    return () => before?.focus?.();
-  }, []);
-  useEffect(() => {
-    const onKey = (ev) => {
-      if (ev.key !== 'Escape') return;
-      ev.preventDefault(); // handled here: the turned month behind stays as it is
-      if (restOpen) setRestOpen(false);
-      else onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, restOpen]);
+  // Focus moves in to the name, Tab stays inside, and Escape backs out of the rest choices first.
+  const dialogRef = useRef(null);
+  useDialog(dialogRef, inputRef, () => (restOpen ? setRestOpen(false) : onClose()));
+  // The rest choices open at the foot of the editor; bring them into view when they open from the
+  // invitation at its top.
+  const restRef = useRef(null);
+  useEffect(() => { if (restOpen) restRef.current?.scrollIntoView({ block: 'nearest' }); }, [restOpen]);
 
   const name = text.trim();
   const minutes = duration.trim() === '' ? null : Number(duration);
@@ -66,6 +58,9 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
   const startsStage = isEdit && !resting && current && current.from < todayKey && valid
     && (taken || (minutes || null) !== (current.durationMinutes ?? null) || !sameRecurrence(recurrence, current.recurrence));
 
+  // Enter saves. It is cancelled too, so the same keystroke never presses the button that focus
+  // returns to as the editor closes ('+' or Edit), which would open the editor again.
+  const submitOnEnter = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } };
   const submit = () => {
     setTouched(true);
     if (!valid) return;
@@ -97,7 +92,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
 
   return (
     <div style={S.modalOverlay} onClick={onClose}>
-      <div style={S.modal} onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit habit' : 'New habit'}>
+      <div ref={dialogRef} style={S.modal} onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit habit' : 'New habit'}>
         <button style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
         <div style={S.modalTitle}>{isEdit ? 'Edit habit' : 'New habit'}</div>
 
@@ -122,7 +117,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
           placeholder="Habit name"
           style={S.modalInput}
           onChange={(ev) => setText(ev.target.value)}
-          onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }}
+          onKeyDown={submitOnEnter}
         />
 
         <label style={S.modalLabel}>Time block</label>
@@ -154,7 +149,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
             placeholder="—"
             style={{ ...S.modalInput, width: 80, marginBottom: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
             onChange={(ev) => setDuration(ev.target.value.replace(/[^\d]/g, ''))}
-            onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }}
+            onKeyDown={submitOnEnter}
           />
           <span style={{ fontSize: 14, color: theme.textMuted }}>min</span>
         </div>
@@ -166,7 +161,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
           placeholder={steps > 1 ? 'And after that? (optional)' : 'Its next step (optional)'}
           style={{ ...S.modalInput, fontSize: 16, padding: '10px 0', marginBottom: 8 }}
           onChange={(ev) => setNext(ev.target.value)}
-          onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }}
+          onKeyDown={submitOnEnter}
         />
 
         {error && <p style={{ ...S.settingsNote, color: theme.text }}>{error}</p>}
@@ -205,7 +200,7 @@ export function HabitModal({ habit, completions = {}, labels, blockOrder, defaul
           <button style={S.archiveButton} onClick={() => setRestOpen(true)}>Rest for a season</button>
         )}
         {isEdit && !resting && restOpen && (
-          <div style={{ marginTop: 20 }}>
+          <div ref={restRef} style={{ marginTop: 20 }}>
             <p style={{ ...S.settingsNote, marginTop: 0, marginBottom: 14 }}>It leaves Today while it rests. Rest days break nothing, and its history stays whole.</p>
             <div style={{ ...S.pillGroup, marginBottom: 0 }}>
               {REST_CHOICES.map(([choice, label]) => (
