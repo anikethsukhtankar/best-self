@@ -8,10 +8,15 @@ export function HabitRow({ habit, stage = habit, checked, onToggle, onEdit }) {
 
   return (
     <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
+      data-habit-row={stage.text}
       style={{ ...S.habitRow, background: hovered ? theme.hover : 'transparent' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onToggle}
+      onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === ' ' || ev.key === 'Enter')) { ev.preventDefault(); onToggle(); } }}
     >
       <div style={{ ...S.checkbox, background: checked ? theme.accent : 'transparent' }}>
         {checked && <Checkmark color={theme.accentText} />}

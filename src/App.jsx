@@ -37,6 +37,15 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+// Make a span or div work like a button: focusable, named, and pressed with Enter or Space.
+const pressable = (label, onPress) => ({
+  role: 'button',
+  tabIndex: 0,
+  'aria-label': label,
+  onClick: onPress,
+  onKeyDown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPress(); } },
+});
+
 // Week Strip Component
 function WeekStrip({ selectedDate, onSelect, habits, completions, threshold }) {
   const { theme, S } = useTheme();
@@ -53,9 +62,9 @@ function WeekStrip({ selectedDate, onSelect, habits, completions, threshold }) {
         const { total } = getDayCompletion(habits, completions, d);
 
         return (
-          <div key={i} style={S.weekDay} onClick={() => onSelect(d)}>
+          <div key={i} style={S.weekDay} {...pressable(`${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`, () => onSelect(d))} data-week-day={formatDateKey(d)} aria-current={sel ? 'date' : undefined}>
             <span style={S.weekDayLetter}>{DAY_LETTERS[i]}</span>
-            <span style={{ ...S.weekDayNum, fontWeight: sel ? 500 : 300, color: fut ? theme.textFaintest : theme.text }}>
+            <span data-date-number={d.getDate()} style={{ ...S.weekDayNum, fontWeight: sel ? 500 : 300, color: fut ? theme.textFaintest : theme.text }}>
               {d.getDate()}
             </span>
             {!fut && total > 0 && (
@@ -675,7 +684,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span
                   style={{ fontSize: 28, padding: '0 16px', color: theme.textFaint, cursor: 'pointer' }}
-                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                  {...pressable('Previous day', () => setSelectedDate(addDays(selectedDate, -1)))}
                 >
                   ‹
                 </span>
@@ -689,13 +698,13 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
                 </LouverNumeral>
                 <span
                   style={{ fontSize: 28, padding: '0 16px', color: theme.textFaint, cursor: 'pointer' }}
-                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                  {...pressable('Next day', () => setSelectedDate(addDays(selectedDate, 1)))}
                 >
                   ›
                 </span>
               </div>
               {!isToday && (
-                <span style={{ fontSize: 12, color: theme.textMuted, cursor: 'pointer', marginTop: 12, display: 'inline-block' }} onClick={() => setSelectedDate(new Date())}>
+                <span style={{ ...S.todayLink, marginTop: 12 }} {...pressable('Back to today', () => setSelectedDate(new Date()))}>
                   Today
                 </span>
               )}
@@ -853,7 +862,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span
                   style={{ ...S.navArrow, color: navHover === 'left' ? theme.text : theme.textFaintest }}
-                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                  {...pressable('Previous day', () => setSelectedDate(addDays(selectedDate, -1)))}
                   onMouseEnter={() => setNavHover('left')}
                   onMouseLeave={() => setNavHover(null)}
                 >
@@ -873,7 +882,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
                 </LouverNumeral>
                 <span
                   style={{ ...S.navArrow, color: navHover === 'right' ? theme.text : theme.textFaintest }}
-                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                  {...pressable('Next day', () => setSelectedDate(addDays(selectedDate, 1)))}
                   onMouseEnter={() => setNavHover('right')}
                   onMouseLeave={() => setNavHover(null)}
                 >
@@ -882,7 +891,7 @@ function Dashboard({ user, signOut, onDarkMode, sample, darkMode: startDark, onS
               </div>
               <div style={S.dayOfWeek}>{DAY_NAMES[selectedDate.getDay()]}</div>
               {!isToday && (
-                <span style={S.todayLink} onClick={() => setSelectedDate(new Date())}>
+                <span style={S.todayLink} {...pressable('Back to today', () => setSelectedDate(new Date()))}>
                   Today
                 </span>
               )}

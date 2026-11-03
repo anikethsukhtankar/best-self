@@ -172,7 +172,7 @@ function Plan({ L, width, days, viewMonth, selectedDate, today, status, theme, o
         const ink = isSelected ? theme.accentText : isCurrentMonth ? theme.text : theme.textFaintest;
 
         return (
-          <g key={i} onClick={() => onSelect(day)} style={{ cursor: 'pointer' }}>
+          <g key={i} onClick={() => onSelect(day)} style={{ cursor: 'pointer' }} data-calendar-day={formatDateKey(day)} data-in-month={isCurrentMonth} data-date-number={day.getDate()}>
             <rect {...m.cell} fill="transparent" />
             {isSelected && <rect {...m.disc} fill={theme.accent} />}
             <text
