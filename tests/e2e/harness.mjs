@@ -4,12 +4,15 @@
 // does (tap, type, press keys) and to read what is on screen and what was saved.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
 
 export { assert };
 
 export const PORT = Number(process.env.E2E_PORT || 4310);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const URL = `http://localhost:${PORT}/best-self/`;
 export const STORAGE_KEY = 'best-self-state';
 
@@ -18,18 +21,20 @@ export const STORAGE_KEY = 'best-self-state';
 const SHELL = '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell';
 const executablePath = process.env.BEST_SELF_CHROMIUM || (fs.existsSync(SHELL) ? SHELL : undefined);
 
-// Serve dist/ (built by the runner) on PORT. Resolves once the server answers.
+// Serve dist/ (built by the runner) on PORT. Resolves once the server answers. Vite runs directly
+// (not through npx), so killing the child stops the server; and a port that already answers is
+// refused, so a journey never runs against a server left over from an earlier build.
+const VITE = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
+const answers = async () => { try { return (await fetch(URL)).ok; } catch { return false; } };
 export async function serve() {
-  const child = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  if (await answers()) throw new Error(`something is already serving on port ${PORT}; stop it, or set E2E_PORT`);
+  const child = spawn(process.execPath, [VITE, 'preview', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: 'ignore' });
   const started = Date.now();
-  for (;;) {
-    try {
-      const res = await fetch(URL);
-      if (res.ok) return child;
-    } catch { /* not up yet */ }
-    if (Date.now() - started > 30000) { child.kill(); throw new Error(`preview server did not start on ${PORT}`); }
+  while (!(await answers())) {
+    if (child.exitCode !== null || Date.now() - started > 30000) { child.kill(); throw new Error(`preview server did not start on ${PORT}`); }
     await new Promise((r) => setTimeout(r, 200));
   }
+  return child;
 }
 
 const browsers = new Map();
