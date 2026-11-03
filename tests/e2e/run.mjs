@@ -15,7 +15,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const grepAt = args.indexOf('--grep');
 const grep = grepAt >= 0 ? new RegExp(args[grepAt + 1], 'i') : null;
-const only = args.filter((a, i) => !a.startsWith('--') && i !== grepAt + 1);
+const only = args.filter((a, i) => !a.startsWith('--') && (grepAt < 0 || i !== grepAt + 1));
 const results = process.env.E2E_RESULTS || path.join(here, '..', '..', 'e2e-results');
 const TIMEOUT = 90000;
 
