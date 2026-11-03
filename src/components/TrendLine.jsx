@@ -42,7 +42,6 @@ export function TrendLine({ habits, completions, today: now }) {
   const [window, setWindow] = useState(7);
   const [hover, setHover] = useState(null);
   const series = useMemo(() => rollingAverage(habits, completions, { days: 90, window, today }), [habits, completions, window, today]);
-  const hasData = series.some((p) => p.value !== null);
 
   const x = (i) => PAD + (i / (series.length - 1)) * (W - 2 * PAD);
   const y = (v) => H - PAD - v * (H - 2 * PAD);
@@ -54,6 +53,8 @@ export function TrendLine({ habits, completions, today: now }) {
     else run.push([x(i), y(p.value)]);
   });
   if (run.length) runs.push(run);
+  // A line needs two points, and something checked to rise from zero; until then, the note.
+  const hasData = runs.some((r) => r.length >= 2) && series.some((p) => p.value > 0);
 
   const onMove = (ev) => {
     const rect = ev.currentTarget.getBoundingClientRect();

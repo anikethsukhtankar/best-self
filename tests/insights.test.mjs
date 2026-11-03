@@ -36,7 +36,8 @@ test('habit breakdown sorts worst first and counts a streak of scheduled occurre
   assert.equal(rows[1].rate, 1);
   assert.equal(rows[1].streak, 3);
   assert.equal(rows[0].streak, 0);
-  assert.equal(rows[0].rate, 1 / 3);
+  // b: kept on the 8th, missed the 9th; today (the 10th) is still open, so it is not a miss yet.
+  assert.equal(rows[0].rate, 1 / 2);
 });
 
 test('rolling average uses a trailing window and skips days with nothing scheduled', () => {

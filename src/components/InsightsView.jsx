@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useDay } from '../hooks/useDay';
 import { currentStreak, bestStreak, weekPercent } from '../utils/insights';
 import { YearGrid } from './YearGrid';
 import { TrendLine } from './TrendLine';
@@ -9,15 +10,15 @@ import { Almanac } from './Almanac';
 // Stats Row: three thin numbers
 export function StatsRow({ habits, completions, threshold }) {
   const { theme, S } = useTheme();
+  const today = useDay(); // a new day (midnight, or the app woken the next morning) recounts them
   const stats = useMemo(() => {
-    const today = new Date();
     const week = weekPercent(habits, completions, today);
     return {
       current: currentStreak(habits, completions, threshold, today),
       best: bestStreak(habits, completions, threshold, today),
       week: week === null ? null : Math.round(week * 100),
     };
-  }, [habits, completions, threshold]);
+  }, [habits, completions, threshold, today]);
   const big = { fontSize: 'clamp(44px, 12vw, 72px)', fontWeight: 100, lineHeight: 1, color: theme.text, fontVariantNumeric: 'tabular-nums' };
   const cells = [[stats.current, 'Day streak'], [stats.best, 'Best streak'], [stats.week === null ? '–' : `${stats.week}%`, 'This week']];
 

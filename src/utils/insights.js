@@ -53,7 +53,7 @@ export const weekPercent = (habits, completions, today = new Date()) => {
 };
 
 // Per-habit rate over the last `days`, worst first so what needs attention is at the top.
-// The streak counts consecutive scheduled occurrences done, ignoring an unfinished today.
+// An unfinished today is left out of both the rate and the streak.
 export const habitBreakdown = (habits, completions, days = 30, today = new Date()) => {
   const tk = formatDateKey(today);
   const rows = habits.filter((h) => !h.archivedAt).map((habit) => {
@@ -66,6 +66,7 @@ export const habitBreakdown = (habits, completions, days = 30, today = new Date(
       if (!isHabitScheduledForDay(habit, d)) continue;
       const dk = formatDateKey(d);
       const hit = Boolean(completions[dk]?.[habit.id]);
+      if (dk === tk && !hit) continue; // today is still open: not a miss yet
       scheduled++;
       if (hit) done++;
       if (counting) {
