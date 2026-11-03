@@ -1,12 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { loadFirebase, isFirebaseConfigured } from '../firebase';
 import { STORAGE_KEY, DEFAULT_STATE, seedHabits } from '../utils/constants';
 import { sanitizeData } from '../utils/habits';
 import { sampleState } from '../utils/sample';
+import { formatDateKey } from '../utils/date';
+
+// When this device cannot store anything (a private window, or site data blocked), the day lives
+// here for as long as the page is open, so a look at the sample year, or a remount, keeps it.
+let memory = null;
+let warned = false;
+const keepInMemory = (state) => {
+  memory = state;
+  if (!warned) { warned = true; console.warn('Best Self: this browser is not keeping site data, so today lives only while this page is open.'); }
+};
 
 // Is there anything stored on this device yet? (A first visit shows the welcome.)
 export const hasStoredState = () => {
-  try { return localStorage.getItem(STORAGE_KEY) !== null; } catch { return false; }
+  try { return localStorage.getItem(STORAGE_KEY) !== null || memory !== null; } catch { return memory !== null; }
 };
 
 // The core list, beginning today, with no checks and no tasks yet.
@@ -15,7 +25,8 @@ const freshState = ({ darkMode = false } = {}) => sanitizeData({ ...DEFAULT_STAT
 // Start this device with the default habits, stored right away so the welcome does not return.
 export const beginFresh = ({ darkMode = false } = {}) => {
   if (hasStoredState()) return; // never over what is already here
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(freshState({ darkMode }))); } catch { /* private mode: it lives in memory */ }
+  const fresh = freshState({ darkMode });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { keepInMemory(fresh); }
 };
 
 // `sample`: a year of sample history held in memory only. Nothing is read from or written to
@@ -24,6 +35,7 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
   const [state, setState] = useState(() => (sample ? sanitizeData(sampleState(new Date(), { darkMode })) : null));
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
+  const startDark = useRef(darkMode); // the light or dark the welcome showed, for a device that cannot store
 
   // Load initial data
   useEffect(() => {
@@ -65,9 +77,9 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
         // Not signed in - use local storage
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          setState(sanitizeData(stored ? JSON.parse(stored) : DEFAULT_STATE));
+          setState(stored ? sanitizeData(JSON.parse(stored)) : memory || freshState({ darkMode: startDark.current }));
         } catch {
-          setState(sanitizeData(DEFAULT_STATE));
+          setState(memory || freshState({ darkMode: startDark.current }));
         }
       }
     };
@@ -146,8 +158,8 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     // Always save to local storage as backup
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-    } catch (err) {
-      console.error('Error saving to localStorage:', err);
+    } catch {
+      keepInMemory(newState);
     }
   }, [user, sample]);
 
@@ -180,7 +192,7 @@ export function useData(user, { sample = false, darkMode = false } = {}) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = formatDateKey(new Date()); // the day being lived here, not the date in Greenwich
     a.download = `best-self-backup-${dateStr}.json`;
     document.body.appendChild(a);
     a.click();
