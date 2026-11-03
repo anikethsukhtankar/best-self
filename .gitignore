@@ -31,3 +31,6 @@ dist-ssr
 # Claude Code local config
 .claude/
 dist-visual
+
+# End-to-end journey results (screenshots of failures)
+e2e-results
