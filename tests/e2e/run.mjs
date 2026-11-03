@@ -2,6 +2,7 @@
 // npm run e2e -- today habits     only those journey files
 // npm run e2e -- --grep midnight  only journeys whose name matches
 // npm run e2e -- --no-build       use the dist/ already built
+// E2E_PORT and E2E_RESULTS set the port and the folder for failure screenshots.
 // Each journey is { name, run(t) }: t.open(options) opens the app (see harness.mjs) and is closed
 // for it afterwards. One line per journey; a failing journey leaves a screenshot in e2e-results/.
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ const args = process.argv.slice(2);
 const grepAt = args.indexOf('--grep');
 const grep = grepAt >= 0 ? new RegExp(args[grepAt + 1], 'i') : null;
 const only = args.filter((a, i) => !a.startsWith('--') && i !== grepAt + 1);
-const results = path.join(here, '..', '..', 'e2e-results');
+const results = process.env.E2E_RESULTS || path.join(here, '..', '..', 'e2e-results');
 const TIMEOUT = 90000;
 
 if (!args.includes('--no-build')) execSync('npx vite build', { stdio: 'ignore' });
@@ -59,6 +60,6 @@ try {
   server.kill();
 }
 const total = passed + failed;
-console.log(`\n${passed}/${total} journeys pass${failed ? `, ${failed} fail (screenshots in e2e-results/)` : ''} on port ${PORT} in ${((Date.now() - started) / 1000).toFixed(0)}s`);
+console.log(`\n${passed}/${total} journeys pass${failed ? `, ${failed} fail (screenshots in ${path.relative(process.cwd(), results) || results})` : ''} on port ${PORT} in ${((Date.now() - started) / 1000).toFixed(0)}s`);
 fs.writeFileSync(path.join(results, 'summary.json'), JSON.stringify({ passed, failed, total, failures: failures.map((f) => ({ name: f.name, file: f.file, error: String(f.error?.message || f.error) })) }, null, 2));
 process.exit(failed ? 1 : 0);
